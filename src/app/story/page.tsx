@@ -19,8 +19,9 @@ import Appbar from "@/components/appbar";
 import SideBarDetail from '@/components/story/sidebar'
 import Stepper from "@/components/story/stepper"
 import ResultStory from "@/components/story/result";
+import { useScrollFade } from "@/hooks/useScrollFade";
+import { useGeminiStory } from "@/hooks/useGemini";
 const MAX_WORDS_LIMIT = 6;
-const scrollBarStyle = ' [&::-webkit-scrollbar]:w-[7px] max-mobile:[&::-webkit-scrollbar]:w-[4px] [&::-webkit-scrollbar-track]:bg-gray-100 [&::-webkit-scrollbar-track]:rounded-2xl [&::-webkit-scrollbar-thumb]:rounded-2xl [&::-webkit-scrollbar-thumb]:bg-bgColor/80 [&::-webkit-scrollbar-thumb:hover]:bg-bgColor'
 
 export default function Story () {
 
@@ -41,39 +42,14 @@ export default function Story () {
     const [loadingStory, setLoadingStory] = useState<boolean>(false);
     const [showStory, setShowStory] = useState<boolean>(false);
     const [isLargeScreen, setIsLargeScreen] = useState<boolean>(typeof window !== "undefined" ? window.innerWidth >= 1280 : false);
-    const contentRef = useRef<HTMLDivElement | null>(null);
     const dialogModal = useRef<HTMLDialogElement | null>(null)
-    const idiomsContentRef = useRef<HTMLDivElement | null>(null);
-    const [idiomsFadeTop, setIdiomsFadeTop] = useState(false);
-    const [idiomsFadeBottom, setIdiomsFadeBottom] = useState(true);
     const [story, setStory] = useState<string>("");
     const [storyFa, setStoryFa] = useState<string>("");
     const [storyEn, setStoryEn] = useState<string>("");
+    const {mutate: storyCreator} = useGeminiStory()
 
-    const handleIdiomsContentScroll = (e: React.UIEvent<HTMLDivElement>) => {
-        const node = e.currentTarget;
-        const scrollTop = node.scrollTop;
-        const scrollHeight = node.scrollHeight;
-        const clientHeight = node.clientHeight;
-        setIdiomsFadeTop(scrollTop > 10);
-        setIdiomsFadeBottom(scrollHeight - (scrollTop + clientHeight) > 10);
-    };
+    const scrollFade = useScrollFade();
 
-    useEffect(() => {
-        // Reset fade states on idioms list change
-        if (idiomsContentRef.current) {
-            const node = idiomsContentRef.current;
-            setIdiomsFadeTop(node.scrollTop > 10);
-            setIdiomsFadeBottom(node.scrollHeight - (node.scrollTop + node.clientHeight) > 10);
-        }
-    }, [words.length]);
-
-    // Color mapping for different levels
-    const levelColors: Record<Level, string> = {
-        'elementry': 'border-green-400',
-        'intermediate': 'border-blue-400',
-        'advanced': 'border-red-400'
-    }
 
     const selectLevel = (theLevel: Level): void => {
         // Check if current level has any lessons selected
@@ -162,16 +138,28 @@ export default function Story () {
     }
 
     const StoryCreator = async (): Promise<void> => {
+        
+        // storyCreator({
+            //     idioms: words,
+            //     information: information
+            // },{
+                //     onSuccess: (data) => {
+                    //         if(data.status)
+                    //             console.log(data)
+                    //         else
+                    //             console.log('errorr')
+                    //     }
+                    // })
+                    
         const apiKey = 'AIzaSyCDXMKBUSPiT5eL13KBgAdP4GMX_Q9S_PY'
         const theWords = words.join(' - ');
         // Updated prompt for both Persian and English (in English)
-        const prompt = `Write a story using these idioms for a language learner. First, provide the story in Persian (Farsi) and then its English translation, each clearly labeled.\nIn both the Persian and English stories, put the exact translation or equivalent of each idiom in [brackets] so it can be highlighted.\nIdioms: ${theWords}.${information ? '\nAdditional information: ' + information : ''}\nOutput format:\nPersian:\n[FA]\nEnglish:\n[EN]`;
         setLoadingStory(true);
-        
         setStory("");
         setStoryFa("");
         setStoryEn("");
         try {
+            const prompt = `Write a story using these idioms for a language learner. First, provide the story in Persian (Farsi) and then its English translation, each clearly labeled.\nIn both the Persian and English stories, put the exact translation or equivalent of each idiom in [brackets] so it can be highlighted.\nIdioms: ${theWords}.${information ? '\nAdditional information: ' + information : ''}\nOutput format:\nPersian:\n[FA]\nEnglish:\n[EN]`;
             const ai = new GoogleGenAI({ apiKey: apiKey });
             const response = await ai.models.generateContent({
                 model: "gemini-2.5-flash",
@@ -210,26 +198,6 @@ export default function Story () {
             setStoryEn("");
         } finally {
             setLoadingStory(false);
-        }
-    }    
-    const handleContentScroll = (e: React.UIEvent<HTMLDivElement>): void => {
-        const scrollTop = e.currentTarget.scrollTop;
-        const scrollHeight = e.currentTarget.scrollHeight;
-        const clientHeight = e.currentTarget.clientHeight;
-        const node = contentRef.current;
-        if (!node) return;
-        
-        if (scrollTop > 10) {
-            node.classList.add('fade-top');
-        } else {
-            node.classList.remove('fade-top');
-        }
-
-        
-        if (scrollHeight - (scrollTop + clientHeight) < 10) {
-            node.classList.remove('fade-bottom');
-        } else {
-            node.classList.add('fade-bottom');
         }
     }
     
@@ -294,6 +262,33 @@ export default function Story () {
             setSteper(2)
     },[words])
 
+    const NewStorySetting = () => {
+        // Reset all story-related data
+        setShowStory(false)
+        setStory("")
+        setStoryFa("")
+        setStoryEn("")
+        setLoadingStory(false)
+        
+        // Reset all selection data
+        setWords([])
+        setWordLevels({})
+        setWordLessons({})
+        setLessons([])
+        setLevel(['elementry'])
+        setCurrentSelectedLevel('elementry')
+        setCurrentViewingLesson(null)
+        setInformation("")
+        setSteper(1)
+        
+        // Reset scroll positions
+        if (scroller.current) {
+            scroller.current.scrollTo(0, 0)
+        }
+        if (mobileScroller.current) {
+            mobileScroller.current.scrollTo(0, 0)
+        }
+    }
 
     useEffect(() => {
         const mediaQuery = window.matchMedia('(min-width: 1280px)');
@@ -309,17 +304,18 @@ export default function Story () {
     }, []);
 
     return(
-        <div className="h-full border-1 max-mobile:border-0 p-5 max-mobile:pt-3 max-mobile:pb-1 max-mobile:px-2">
+        <div className="h-full border-1 max-mobile:border-0 p-5 max-mobile:pt-3 max-mobile:pb-1 max-mobile:px-2 overflow-y-auto">
             <div className="h-full flex flex-col gap-3">
                 {showStory ? (
-                    <ResultStory isShow={setShowStory} theStory={story} storyPersian={storyFa} storyEnglish={storyEn}  />
+                    <ResultStory isShow={setShowStory} newStory={NewStorySetting} theStory={story} storyPersian={storyFa} storyEnglish={storyEn}  />
                 ) : (
                     <>
-                        <Appbar onBackClick={()=> router.push('/')} title='Story creator' iconSrc="./icon/Otter.svg" rightButton={isLargeScreen ? false : 
-                            <button className="border shadow-lg text-xl max-tablet:text-lg bg-gradient-to-br from-primaryColor from-50% to-bgColor text-white rounded-lg p-2 max-tablet:py-[6px] max-tablet:px-2 cursor-pointer" onClick={()=>dialogModal.current?.showModal()}><TbTimeline /></button>}/>
+                        <Appbar onBackClick={()=> router.push('/')} title='Story creator' iconSrc="./icon/Otter.svg" rightButton={isLargeScreen ? false : <button className="border shadow-lg text-xl max-tablet:text-lg bg-gradient-to-br from-primaryColor from-50% to-bgColor text-white rounded-lg p-2 max-tablet:py-[6px] max-tablet:px-2 cursor-pointer" onClick={()=>dialogModal.current?.showModal()}><TbTimeline /></button>}/>
                         <Stepper steper={steper} />
-                        <div className="grid desktop:grid-cols-[7fr_2fr] max-desktop:grid-cols-none gap-3 flex-1 overflow-hidden max-[1500px]:gap-3 max-laptop:gap-0">
-                            <div ref={contentRef} onScroll={handleContentScroll} className={`flex flex-col gap-5 max-desktop:gap-5 overflow-hidden max-laptop:overflow-y-scroll max-tablet:min-h-[200px] fade-bottom`}>
+                        <div className="grid desktop:grid-cols-[7fr_2fr] max-desktop:grid-cols-none gap-3 flex-1 max-[1500px]:gap-3 max-laptop:gap-0">
+                            {/* Level - Lessons - Words */}
+                            <div ref={scrollFade} className={`flex flex-col gap-5 max-desktop:gap-5 overflow-hidden max-laptop:overflow-y-scroll max-tablet:min-h-[200px] fade-bottom`}>
+                                {/* desktop => Level Selection */}
                                 <div className="flex flex-col gap-3 max-mobile:px-0">
                                     <div className="flex flex-col gap-1 max-laptop:gap-1 select-none px-2 max-mobile:px-0">
                                         <div className="text-2xl max-laptop:text-lg max-tablet:text-base font-semibold">Select Level</div>
@@ -370,7 +366,9 @@ export default function Story () {
                                         </div>
                                     </div>
                                 </div>
+                                {/* desktop => Words selection  */}
                                 <div className="flex flex-col gap-3 flex-1 overflow-hidden max-tablet:overflow-visible px-2 max-mobile:px-0 max-tablet:min-h-[300px] max-mobile:min-h-auto">
+                                    {/* desktop => title Select Words */}
                                     <div className="flex flex-col gap-1 max-laptop:gap-1 select-none">
                                         <div className="text-2xl max-laptop:text-lg max-tablet:text-base font-semibold">Select Words</div>
                                         <div className="text-gray-400 text-sm max-laptop:text-base max-tablet:text-xs">Select your words after that you selected the lesson</div>
@@ -400,8 +398,9 @@ export default function Story () {
                                             </div>
                                         </div>
                                     </div>
+                                    {/* desktop => Lesson list - Words list */}
                                     <div className="hidden mobile:flex flex-1 max-tablet:min-h-[200px] max-mobile:max-h-[300px] bg-white/20 backdrop-blur-sm border border-primaryColor/20 rounded-xl shadow-lg px-2 py-4 overflow-hidden gap-5 mb-5">
-                                        <div ref={scroller} className="scroll-smooth overflow-y-auto h-full w-3/12 max-[1800px]:w-4/12 max-[1440px]:w-full max-[1440px]:flex-1 max-desktop:flex-none max-desktop:w-4/12 [&::-webkit-scrollbar]:w-[7px] [&::-webkit-scrollbar-track]:bg-gray-100 [&::-webkit-scrollbar-track]:rounded-2xl [&::-webkit-scrollbar-thumb]:rounded-2xl [&::-webkit-scrollbar-thumb]:bg-bgColor/80 [&::-webkit-scrollbar-thumb:hover]:bg-bgColor" dir="rtl">
+                                        <div ref={scroller} className="scroll-smooth overflow-y-auto h-full max-h-[300px] w-3/12 max-[1800px]:w-4/12 max-[1440px]:w-full max-[1440px]:flex-1 max-desktop:flex-none max-desktop:w-4/12 customScrollBarStyle" dir="rtl">
                                             <div className="h-full w-full grid grid-cols-2 max-[892px]:grid-cols-1 gap-2 p-2" dir="ltr">
                                                 {books[currentSelectedLevel]?.levels[0]?.lessons.map((item: any,index: number)=>(
                                                     (() => {
@@ -459,11 +458,11 @@ export default function Story () {
                                         </div>
                                         <div className="px-4 py-2 flex-2 space-y-3 border-l-2 border-bgColor max-desktop:py-0">
                                             {currentViewingLesson !== null ? 
-                                                <div className="space-y-3 h-full flex flex-col overflow-y-auto">
+                                                <div ref={scrollFade} className="space-y-3 h-full flex flex-col overflow-y-auto fade-bottom customScrollBarStyle">
                                                     <div className="text-sm max-desktop:text-sm max-[1440px]:hidden desktop:block max-desktop:hidden font-semibold text-gray-600 border-b pb-2">
                                                         Lesson {currentViewingLesson}
                                                     </div>
-                                                    <div className="flex flex-wrap gap-3 overflow-y-auto desktop:flex-none p-2 pb-5 [&::-webkit-scrollbar]:w-[7px] [&::-webkit-scrollbar-track]:bg-gray-100 [&::-webkit-scrollbar-track]:rounded-2xl [&::-webkit-scrollbar-thumb]:rounded-2xl [&::-webkit-scrollbar-thumb]:bg-bgColor/80 [&::-webkit-scrollbar-thumb:hover]:bg-bgColor">
+                                                    <div className="flex flex-wrap gap-3 overflow-y-auto desktop:flex-none p-2 pb-5 customScrollBarStyle">
                                                         {(() => {
                                                             const lessonIndex = books[currentSelectedLevel]?.levels[0]?.lessons.findIndex((lesson: any) => lesson.lesson_number === currentViewingLesson)
                                                             return lessonIndex !== -1 ? 
@@ -502,8 +501,9 @@ export default function Story () {
                                             }
                                         </div>
                                     </div>
+                                    {/* mobile => Lesson - Words Selection */}
                                     <div className="mobile:hidden flex-1 flex flex-col gap-5 overflow-hidden">
-                                        <div ref={mobileScroller} className={`flex-1 grid grid-cols-3 gap-2 max-h-[200px] min-h-[200px] overflow-y-scroll border rounded-xl p-2 scroll-smooth ${scrollBarStyle}`}>
+                                        <div ref={mobileScroller} className={`flex-1 grid grid-cols-3 gap-2 max-h-[200px] min-h-[200px] overflow-y-scroll border rounded-xl p-2 scroll-smooth customScrollBarStyle`}>
                                             {books[currentSelectedLevel]?.levels[0]?.lessons.map((item: any,index: number)=>(
                                                     (() => {
                                                         // پیدا کردن سطح درس
@@ -557,7 +557,7 @@ export default function Story () {
                                                     })()
                                             ))}
                                         </div>
-                                        <div className={`flex-1 max-h-[200px] min-h-[200px] overflow-y-scroll border rounded-xl p-2 ${scrollBarStyle}`}>
+                                        <div className={`flex-1 max-h-[200px] min-h-[200px] overflow-y-scroll border rounded-xl p-2 customScrollBarStyle`}>
                                             {currentViewingLesson !== null ? 
                                                 <div className="flex flex-wrap gap-3 desktop:flex-none p-2">
                                                     {(() => {
@@ -598,6 +598,7 @@ export default function Story () {
                                         </div>
                                     </div>
                                 </div>
+                                {/* mobile => input infomation * bottom selection lesson words */}
                                 <div className="mx-2 desktop:hidden">
                                     <div className="select-none px-2 max-mobile:px-0 mb-3 max-laptop:mb-1">
                                         <div className="text-[30px] max-laptop:text-[25px] max-tablet:text-base font-semibold">Informations</div>
@@ -605,6 +606,7 @@ export default function Story () {
                                     <textarea className="border min-h-[100px] max-tablet:min-h-0 w-full rounded-xl p-2 outline-0 text-sm placeholder:max-tablet:text-sm max-tablet:text-sm" placeholder="Write what you want in this story, AI will build it!"></textarea>
                                 </div>
                             </div>
+                            {/* Sidebar Detail */}
                             <SideBarDetail 
                                 level={level}
                                 lessons={lessons}
@@ -620,6 +622,7 @@ export default function Story () {
                                 MAX_WORDS_LIMIT={MAX_WORDS_LIMIT}
                             />
                         </div>
+                        {/* mobile - tablet => button create story bootom of information input */}
                         <div className={`desktop:hidden text-[22px] max-tablet:text-lg max-mobile:text-base text-center font-bold mt-auto border rounded-xl max-mobile:rounded-lg py-4 max-tablet:py-3 max-mobile:py-[10px] shadow-xl duration-200 select-none flex justify-center items-center ${
                             loadingStory ? 'bg-gradient-to-br from-primaryColor/50 to-blue-600/50 text-white cursor-default': words.length >= 1 ? 'bg-gradient-to-br from-primaryColor to-blue-600 text-white hover:shadow-2xl hover:scale-105 cursor-pointer' : 'bg-gradient-to-br from-blue-600/60 to-blue-600/60 text-white cursor-not-allowed shadow-none'}`}
                             onClick={() => {
@@ -630,6 +633,7 @@ export default function Story () {
                         >
                             {loadingStory ? <span className="flex items-center gap-2">Generating<FaSpinner className="animate-spin text-2xl" /></span> : 'Create Story =>'} 
                         </div>
+                        {/* mobile => dialog modal details */}
                         <dialog ref={dialogModal} className="modal">
                             <div className="modal-box bg-white p-0 rounded-xl border border-gray-400/10 relative overflow-hidden min-w-[370px] max-[1500px]:min-w-[320px] shadow-lg">
                                 <img className="absolute select-none top-1/2 -right-20 z-20 scale-x-150" src="./blob-haikei.svg" />
@@ -713,9 +717,8 @@ export default function Story () {
                                     <div>
                                         <div className="border-3 backdrop-blur-2xl justify-self-start py-1 px-4 font-semibold rounded-xl bg-blue-500/50 -mb-5 -ml-4 z-20 relative select-none text-sm">Idioms :</div>
                                         <div
-                                            ref={idiomsContentRef}
-                                            onScroll={handleIdiomsContentScroll}
-                                            className={`rounded-xl bg-white/20 border py-5 px-5 flex gap-2 flex-wrap overflow-y-auto w-full max-h-[200px] relative [&::-webkit-scrollbar]:w-[7px] [&::-webkit-scrollbar-track]:bg-gray-100 [&::-webkit-scrollbar-track]:rounded-2xl [&::-webkit-scrollbar-thumb]:rounded-2xl [&::-webkit-scrollbar-thumb]:bg-bgColor/80 [&::-webkit-scrollbar-thumb:hover]:bg-bgColor ${idiomsFadeTop ? 'fade-top' : ''} ${idiomsFadeBottom ? 'fade-bottom' : ''}`}
+                                            ref={scrollFade}
+                                            className={`rounded-xl bg-white/20 border py-5 px-5 flex gap-2 flex-wrap overflow-y-auto w-full max-h-[200px] relative customScrollBarStyle customScrollBarStyle`}
                                         >
                                             {words.length ?
                                                 words.map((item,index)=>{

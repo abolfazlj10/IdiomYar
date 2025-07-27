@@ -9,7 +9,8 @@ interface resultProps {
     isShow: (value: boolean) => void;
     theStory: string;
     storyPersian: string;
-    storyEnglish: string
+    storyEnglish: string;
+    newStory: () => void;
 }
 
 const loremIP = `
@@ -37,7 +38,8 @@ export const ResultStory = ({
     isShow,
     theStory,
     storyEnglish,
-    storyPersian
+    storyPersian,
+    newStory,
 }: resultProps) => {
     const [fontSize, setFontSize] = useState(14);
     const [lineHeight, setLineHeight] = useState(2);
@@ -81,11 +83,18 @@ export const ResultStory = ({
         );
     }
 
+    const buttonNewStory = () => {
+        return(
+            <button onClick={()=> {
+                newStory()
+                console.log('yes its gonna work')
+            }} className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg bg-primaryColor/90 hover:bg-primaryColor text-white shadow-lg font-semibold max-tablet:text-xs transition-all duration-150 cursor-pointer">+ New Story</button>
+        )
+    }
+
     return(
         <div className="flex flex-col flex-1 gap-2 overflow-hidden animate-fadein">
-            <Appbar onBackClick={()=> isShow(false)} title='The story' iconSrc="./icon/Otter.svg" rightButton={(
-                <button className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg bg-primaryColor/90 hover:bg-primaryColor text-white shadow-lg font-semibold max-tablet:text-xs transition-all duration-150 cursor-pointer">+ New Story</button>
-            )}/>
+            <Appbar onBackClick={()=> isShow(false)} title='The story' iconSrc="./icon/Otter.svg" rightButton={buttonNewStory()}/>
             <>
             <div className="flex justify-center gap-6 max-[428px]:gap-2">
                 {/* Language Group */}
@@ -133,7 +142,7 @@ export const ResultStory = ({
             </div>
             
             {storyPersian && storyEnglish ? (
-                <div className="flex flex-col md:flex-row flex-1 items-stretch overflow-y-scroll">
+                <div className="flex flex-col md:flex-row flex-1 items-stretch overflow-y-auto">
                     {/* English Box */}
                     <div className={`flex-1 bg-gray-50 rounded-2xl shadow-lg p-6 flex flex-col gap-4 max-mobile:gap-0 ring-2 ring-gray-200 border border-gray-100 relative transition-all duration-300 scale-90 ${focusMode==='fa' ? 'opacity-30 blur-[2px]' : focusMode==='en' ? 'scale-95 shadow-2xl z-10' : ''}`}>
                         <div className="flex items-center gap-2 mb-2">

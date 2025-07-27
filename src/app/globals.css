@@ -12,6 +12,7 @@
 }
 
 
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
@@ -158,4 +159,29 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+.customScrollBarStyle::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.customScrollBarStyle::-webkit-scrollbar-track {
+  background: var(--color-bgColor);
+  border-radius: 10px;
+}
+
+.customScrollBarStyle::-webkit-scrollbar-thumb {
+  background: var(--color-bgColor);
+  border-radius: 10px;
+  border: 2px solid var(--color-bgColor);
+}
+
+.customScrollBarStyle::-webkit-scrollbar-thumb:hover {
+  background: var(--color-primaryColor);
+}
+
+.customScrollBarStyle {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-bgColor) rgba(0, 0, 0, 0);
 }
