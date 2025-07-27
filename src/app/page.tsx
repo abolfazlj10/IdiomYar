@@ -1,11 +1,12 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { IoCreate } from "react-icons/io5";
 import { FaBookOpen } from "react-icons/fa";
 import { PiCardsThreeFill } from "react-icons/pi";
 import { MdOutlineFavorite } from "react-icons/md";
 import QuickAccessCard from "@/components/quickAccessCard";
 import { useScrollFade } from "@/hooks/useScrollFade";
+import toast from "react-hot-toast";
 
 export default function Home() {
   const [quickAccess] = useState([
@@ -16,16 +17,16 @@ export default function Home() {
       route: "/story"
     },
     {
-      icon: <FaBookOpen />,
-      title: "Book",
-      description: "Reach a message to any other one of your chicken",
-      route: "/book"
-    },
-    {
       icon: <PiCardsThreeFill />,
       title: "Flash Cards",
       description: "Reach a message to any other one of your chicken",
       route: "/cards"
+    },
+    {
+      icon: <FaBookOpen />,
+      title: "Book",
+      description: "Reach a message to any other one of your chicken",
+      route: "/book"
     },
     {
       icon: <MdOutlineFavorite />,
@@ -34,6 +35,12 @@ export default function Home() {
       route: "/archive"
     }
   ]);
+  useEffect(()=>{
+    toast('This page is still under construction!', {
+      icon:<img className="w-[20px]" src="./icon/laptop.png"/>,
+      position:'top-right'
+    });
+  },[])
   return (
     <div ref={useScrollFade()} className="h-full flex flex-col gap-10 p-7 overflow-y-auto">
       <div className="flex flex-col gap-6">
@@ -52,7 +59,7 @@ export default function Home() {
             <img className="absolute -top-5 -right-5 w-[40px]" src="./icon/Direct Hit.svg"/>
           </div>
         </div>
-      </div>
+      </div>          
       <div className="font-bold flex flex-col gap-5">
         <div className="text-lg select-none">Quick Access <img className="w-[30px] inline-block" src="./icon/Backhand Index Pointing Down Medium Skin Tone.svg" /></div>
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 sm:pr-[1rem] gap-5">
