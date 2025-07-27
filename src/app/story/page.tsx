@@ -21,6 +21,7 @@ import Stepper from "@/components/story/stepper"
 import ResultStory from "@/components/story/result";
 import { useScrollFade } from "@/hooks/useScrollFade";
 import { useGeminiStory } from "@/hooks/useGemini";
+import { toast } from 'react-hot-toast';
 const MAX_WORDS_LIMIT = 6;
 
 export default function Story () {
@@ -149,7 +150,6 @@ export default function Story () {
             information: information
         }, {
             onSuccess: (data: any) => {
-                // فرض بر این است که data شامل story، storyFa و storyEn است
                 if (data && data.status) {
                     setStory(data.story || "");
                     setStoryFa(data.storyFa || "");
@@ -159,13 +159,20 @@ export default function Story () {
                     setStory("Error: Invalid response from server");
                     setStoryFa("");
                     setStoryEn("");
+                    toast.error(
+                        `Story creation request failed.\nIf your VPN is turned off, please enable it and try again.`
+                    );
                 }
                 setLoadingStory(false);
             },
             onError: (err: any) => {
-                setStory("Error generating story: " + (err?.message || "Unknown error"));
+                setStory("Error generating story: " + (err && err.message ? err.message : "Unknown error"));
                 setStoryFa("");
                 setStoryEn("");
+                // حتی اگر err پیام نداشت یا undefined بود، toast را نمایش بده
+                toast.error(
+                    `Story creation request failed.\nIf your VPN is turned off, please enable it and try again.`
+                );
                 setLoadingStory(false);
             }
         });

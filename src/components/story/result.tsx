@@ -4,6 +4,7 @@ import { TbLineHeight } from "react-icons/tb";
 import GroupButton from "@/components/ui/group-button";
 import { useState } from "react";
 import Appbar from "../appbar";
+import { toast } from 'react-hot-toast';
 
 interface resultProps {
     isShow: (value: boolean) => void;
@@ -156,7 +157,10 @@ export const ResultStory = ({
                         </div>
                         <button
                             className="absolute top-4 right-4 px-3 py-1 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-xl text-xs max-laptop:text-2xs font-semibold shadow transition-all duration-150 cursor-pointer"
-                            onClick={() => {navigator.clipboard.writeText(storyEnglish)}}
+                            onClick={() => {
+                                navigator.clipboard.writeText(storyEnglish);
+                                toast.success('Text copied to clipboard.');
+                            }}
                         >Copy</button>
                     </div>
                     {/* Divider */}
@@ -174,7 +178,10 @@ export const ResultStory = ({
                         </div>
                         <button
                             className="absolute top-4 right-4 px-3 py-1 bg-green-100 hover:bg-green-200 text-green-700 rounded-xl text-xs max-laptop:text-2xs font-semibold shadow transition-all duration-150 cursor-pointer"
-                            onClick={() => {navigator.clipboard.writeText(storyPersian)}}
+                            onClick={() => {
+                                navigator.clipboard.writeText(storyPersian);
+                                toast.success('Text copied to clipboard.');
+                            }}
                         >Copy</button>
                     </div>
                 </div>
