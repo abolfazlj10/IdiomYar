@@ -6,7 +6,6 @@ import { PiCardsThreeFill } from "react-icons/pi";
 import { MdOutlineFavorite } from "react-icons/md";
 import QuickAccessCard from "@/components/quickAccessCard";
 import { useScrollFade } from "@/hooks/useScrollFade";
-
 export default function Home() {
   const [quickAccess] = useState([
     {
