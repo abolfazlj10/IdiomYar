@@ -1,7 +1,6 @@
 'use client'
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { GoogleGenAI } from "@google/genai";
 // ________ ts types ________
 import type { Book, Level, LevelArray } from "@/types/types";
 // __________ jsons the Book __________
