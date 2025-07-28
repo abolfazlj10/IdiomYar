@@ -25,8 +25,8 @@ export default function SelectionStep () {
     return (
         <div className="flex h-full p-2">
             <div className="flex-2 flex flex-col gap-2">
-                {Object.keys(books).map((level, idx) => (
-                    <LevelComponent key={idx} level={level} />
+                {Object.keys(books).map((levelInp, idx) => (
+                    <LevelComponent key={idx} level={levelInp as Level} />
                 ))}
             </div>
             <div className="flex-5">lessons</div>
