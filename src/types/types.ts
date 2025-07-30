@@ -16,3 +16,8 @@ export type Book= {
 export type Level = 'elementry' | 'intermediate' | 'advanced'
 
 export type LevelArray = Level[]
+export type colorLevel = {
+    elementry: string;
+    intermediate: string;
+    advanced: string;
+}

@@ -1,35 +1,33 @@
 'use client'
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import LevelComponent from "./levels";
 // ________ ts types ________
-import type { Book, Level, LevelArray } from "@/types/types";
+import type { Book, Level } from "@/types/types";
 // __________ jsons the Book __________
 import elementry from '../../data/book/elementry.json'
 import intermediate from '../../data/book/intermediate.json'
 import advanced from '../../data/book/advanced.json'
-
-
-interface typeColors {
-    elementry: 'bg-green-400'
-    intermediate: 'bg-blue-400'
-    advanced: 'bg-red-400'
-}
+import Lesson from "./lesson";
 
 export default function SelectionStep () {
     const [books] = useState<Record<Level,Book>>({'elementry':elementry,'intermediate':intermediate,'advanced':advanced})
-    const [colors] = useState<typeColors>({
-        elementry: 'bg-green-400',
-        intermediate: 'bg-blue-400',
-        advanced: 'bg-red-400'
-    })
+    const [selectedLevel,setSelectedLevel] = useState<Level>('elementry')
+
     return (
-        <div className="flex h-full p-2">
-            <div className="flex-2 flex flex-col gap-2">
+        <div className="h-full flex flex-1 p-4 gap-5">
+            <div className="h-full flex-1 flex flex-col gap-5 border-r pr-10">
                 {Object.keys(books).map((levelInp, idx) => (
-                    <LevelComponent key={idx} level={levelInp as Level} />
+                    <LevelComponent key={idx} levels={levelInp as Level} handleSelect={setSelectedLevel} />
                 ))}
             </div>
-            <div className="flex-5">lessons</div>
+            <div className="flex-5 flex flex-col">
+                <div className="grid grid-cols-5 content-start items-start gap-4 p-4 rounded-xl">
+                    {books[selectedLevel]?.levels[0]?.lessons.map((item: any,idx: number)=>(
+                        <Lesson key={idx} lessonNum={item.lesson_number} />
+                    ))}                    
+                </div>
+                <button className="mt-auto ml-auto w-max cursor-pointer shadow-lg text-xl font-semibold px-4 py-2 rounded-lg border bg-primaryColor text-white duration-100 hover:scale-105 hover:shadow-xl ">next step</button>
+            </div>
         </div>
     )
 }

@@ -8,9 +8,7 @@ import elementry from '../../data/book/elementry.json'
 import intermediate from '../../data/book/intermediate.json'
 import advanced from '../../data/book/advanced.json'
 // _______ icons _______
-import { TbBoxMultiple1 } from "react-icons/tb";
-import { TbBoxMultiple2 } from "react-icons/tb";
-import { TbBoxMultiple3 } from "react-icons/tb";
+import { TbBoxMultiple1,TbBoxMultiple2, TbBoxMultiple3 } from "react-icons/tb";
 import { MdClose } from "react-icons/md";
 import { TbTimeline } from "react-icons/tb";
 import { FaSpinner , FaCheck } from "react-icons/fa";
