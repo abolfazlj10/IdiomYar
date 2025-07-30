@@ -17,7 +17,7 @@ export default function SelectionStep () {
         <div className="h-full flex flex-1 p-4 gap-5">
             <div className="h-full flex-1 flex flex-col gap-5 border-r pr-10">
                 {Object.keys(books).map((levelInp, idx) => (
-                    <LevelComponent key={idx} levels={levelInp as Level} handleSelect={setSelectedLevel} />
+                    <LevelComponent key={idx} levels={levelInp as Level} handleSelect={setSelectedLevel} selectedLevel={selectedLevel} />
                 ))}
             </div>
             <div className="flex-5 flex flex-col">
