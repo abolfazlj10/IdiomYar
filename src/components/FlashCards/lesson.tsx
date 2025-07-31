@@ -1,4 +1,5 @@
 import { useEffect } from "react"
+import { motion } from "framer-motion"
 
 interface inputTypes {
     lessonNum: number

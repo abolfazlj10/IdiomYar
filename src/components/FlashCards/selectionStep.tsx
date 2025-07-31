@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useState } from "react";
+import { motion } from 'framer-motion'
 import LevelComponent from "./levels";
 // ________ ts types ________
 import type { Book, Level } from "@/types/types";
@@ -9,9 +10,32 @@ import intermediate from '../../data/book/intermediate.json'
 import advanced from '../../data/book/advanced.json'
 import Lesson from "./lesson";
 
+const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        // انیمیشن فرزندان با تاخیر انجام می‌شود
+        staggerChildren: 0.2, // هر آیتم با ۰.۲ ثانیه تاخیر ظاهر می‌شود
+      },
+    },
+  };
+
+  const itemVariants = {
+    hidden: { y: 20, opacity: 0 }, // در ابتدا آیتم کمی پایین‌تر و نامرئی است
+    visible: {
+      y: 0,
+      opacity: 1,
+      transition: {
+        duration: 0.5, // انیمیشن در ۰.۵ ثانیه انجام می‌شود
+      },
+    },
+  };
+
 export default function SelectionStep () {
     const [books] = useState<Record<Level,Book>>({'elementry':elementry,'intermediate':intermediate,'advanced':advanced})
     const [selectedLevel,setSelectedLevel] = useState<Level>('elementry')
+
 
     return (
         <div className="h-full flex flex-1 p-4 gap-5">
@@ -21,11 +45,12 @@ export default function SelectionStep () {
                 ))}
             </div>
             <div className="flex-5 flex flex-col">
-                <div className="grid grid-cols-5 content-start items-start gap-4 p-4 rounded-xl">
+                <motion.div 
+                 className="grid grid-cols-5 content-start items-start gap-4 p-4 rounded-xl">
                     {books[selectedLevel]?.levels[0]?.lessons.map((item: any,idx: number)=>(
                         <Lesson key={idx} lessonNum={item.lesson_number} />
-                    ))}                    
-                </div>
+                    ))}
+                </motion.div>
                 <button className="mt-auto ml-auto w-max cursor-pointer shadow-lg text-xl font-semibold px-4 py-2 rounded-lg border bg-primaryColor text-white duration-100 hover:scale-105 hover:shadow-xl ">next step</button>
             </div>
         </div>
