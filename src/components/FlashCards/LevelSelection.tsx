@@ -43,20 +43,21 @@ export default function LevelSelection({ onLevelSelect }: LevelSelectionProps) {
   return (
     <div className="min-h-full flex flex-col items-center justify-center p-8 font-interVariable">
       <motion.div 
-        className="text-center mb-12"
-        initial={{ opacity: 0, y: -20 }}
+        className="text-center mb-16"
+        initial={{ opacity: 0, y: -30 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, ease: "easeOut" }}
+        transition={{ duration: 0.8, ease: "easeOut" }}
       >
-        <h1 className="text-4xl font-bold text-gray-800 mb-4">
-          Choose Your Learning Level
+               
+        <h1 className="text-6xl font-bold bg-gradient-to-r from-gray-800 via-blue-600 to-purple-600 bg-clip-text text-transparent mb-6 tracking-tight">
+          Choose Your Level
         </h1>
-        <p className="text-lg text-gray-600">
-          Select the appropriate level to get started
+        <p className="text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
+          Select your learning level to begin mastering English idioms with personalized content
         </p>
       </motion.div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl w-full">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-10 max-w-7xl w-full">
         {levels.map((level, index) => (
           <LevelCard
             key={level.id}
