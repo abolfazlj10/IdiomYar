@@ -1,73 +1,88 @@
 "use client";
-import { useEffect, useState } from "react";
-import { IoCreate } from "react-icons/io5";
-import { FaBookOpen } from "react-icons/fa";
-import { PiCardsThreeFill } from "react-icons/pi";
-import { MdOutlineFavorite } from "react-icons/md";
+
+import { BookOpen, Library, NotebookTabs, Sparkles } from "lucide-react";
 import QuickAccessCard from "@/components/quickAccessCard";
 import { useScrollFade } from "@/hooks/useScrollFade";
-import toast from "react-hot-toast";
 
-export default function Home() {
-  const [quickAccess] = useState([
-    {
-      icon: <IoCreate />,
-      title: "Story Creator",
-      description: "Reach a message to any other one of your chicken",
-      route: "/story"
-    },
-    {
-      icon: <PiCardsThreeFill />,
-      title: "Flash Cards",
-      description: "Reach a message to any other one of your chicken",
-      route: "/cards"
-    },
-    {
-      icon: <FaBookOpen />,
-      title: "Book",
-      description: "Reach a message to any other one of your chicken",
-      route: "/book"
-    },
-    {
-      icon: <MdOutlineFavorite />,
-      title: "Archives",
-      description: "Reach a message to any other one of your chicken",
-      route: "/archive"
-    }
-  ]);
-  useEffect(()=>{
-    toast('This page is still under construction!', {
-      icon:<img className="w-[20px]" src="./icon/laptop.png"/>,
-      position:'top-right'
-    });
-  },[])
+const quickAccess = [
+  {
+    icon: <Sparkles />,
+    title: "Story Creator",
+    description: "Choose idioms and generate a bilingual story for contextual practice.",
+    route: "/story",
+  },
+  {
+    icon: <NotebookTabs />,
+    title: "Flash Cards",
+    description: "Reveal meanings, mark known cards, and build a focused review deck.",
+    route: "/cards",
+  },
+  {
+    icon: <BookOpen />,
+    title: "Book Study",
+    description: "Study lessons with definitions, Persian meanings, examples, and bookmarks.",
+    route: "/book",
+  },
+  {
+    icon: <Library />,
+    title: "Archive & Review",
+    description: "Return to saved stories, bookmarked idioms, and cards that need review.",
+    route: "/archive",
+  },
+];
+
+export default function Home(): React.ReactElement {
   return (
-    <div ref={useScrollFade()} className="h-full flex flex-col gap-10 p-7 overflow-y-auto">
-      <div className="flex flex-col gap-6">
-        <div className="text-xl min-[500px]:text-3xl lg:text-5xl font-bold select-none">Leran essenitial idioms with <span className="bg-gradient-to-r from-[#4e5996] to-primaryColor bg-clip-text text-transparent">AI</span></div>
-      </div>
-      <div className="flex-1 flex flex-col lg:flex-row gap-10 lg:gap-4">
-        <div className="flex-1 flex flex-col order-2 text-sm xl:text-base">
-          <div className="text-justify lg:lext-left">
-            This <span className="bg-hilightColor/30 px-1">AI-powered tool</span> is designed to help you master <span className="bg-hilightColor/30 px-1">essential English idioms</span> in a fun and effective way. With features like the Story Creator, Flash Cards, and a full Book of idioms, it makes learning both <span className="bg-hilightColor/30 px-1">interactive</span> and practical. Whether you're a beginner or looking to improve your fluency, this tool supports your progress by offering structured lessons and <span className="bg-hilightColor/30 px-1">personalized practice</span>. You'll build your vocabulary, understand real-life usage, and <span className="bg-hilightColor" />
-            <span className="bg-hilightColor/30 px-1">gain confidence</span> in speaking and writing. The Archives section also helps you save and review what you've learned. It's an ideal companion for daily English improvement.
+    <main ref={useScrollFade()} className="flex h-full w-full min-w-0 flex-col gap-8 overflow-x-hidden overflow-y-auto p-7 max-mobile:p-4 customScrollBarStyle">
+      <section className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_minmax(320px,520px)] items-center gap-8 max-[1400px]:grid-cols-1">
+        <div className="flex flex-col gap-5">
+          <h1 className="max-w-4xl text-5xl font-black leading-tight max-tablet:text-3xl">
+            Learn essential idioms with <span className="bg-gradient-to-r from-[#4e5996] to-primaryColor bg-clip-text text-transparent">AI</span>
+          </h1>
+          <p className="max-w-3xl text-base leading-8 text-gray-700 max-tablet:text-sm">
+            A focused study workspace for mastering English idioms through structured lessons, flash-card practice, AI story generation,
+            and a personal archive for everything you want to revisit.
+          </p>
+          <div className="grid max-w-2xl grid-cols-3 gap-3 max-mobile:grid-cols-1">
+            <Metric value="465" label="Idioms" />
+            <Metric value="39" label="Lessons" />
+            <Metric value="4" label="Study modes" />
           </div>
         </div>
-        <div className="flex-1 flex justify-center items-center select-none lg:order-2">
-          <div className="ring-3 ring-primaryColor rounded-xl w-[500px] h-full relative">
-            <img className="w-full rounded-xl h-full object-cover shadow-xl shadow-bgColor" src="./Screenshot 2025-06-16 103128.png" />
-            <img className="absolute -top-5 -right-5 w-[40px]" src="./icon/Direct Hit.svg"/>
+
+        <div className="relative min-h-[260px] overflow-hidden rounded-lg border-2 border-primaryColor bg-bgColor/40 shadow-xl max-[1400px]:hidden">
+          <img
+            className="h-full min-h-[320px] w-full object-cover"
+            src="/Screenshot 2025-06-16 103128.png"
+            alt="Essential Idioms app preview"
+          />
+          <div className="absolute bottom-4 left-4 rounded-lg bg-white/90 px-4 py-3 shadow">
+            <div className="text-sm font-black text-gray-900">Study, practice, review</div>
+            <div className="text-xs text-gray-500">One flow for every lesson</div>
           </div>
         </div>
-      </div>          
-      <div className="font-bold flex flex-col gap-5">
-        <div className="text-lg select-none">Quick Access <img className="w-[30px] inline-block" src="./icon/Backhand Index Pointing Down Medium Skin Tone.svg" /></div>
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 sm:pr-[1rem] gap-5">
-          {quickAccess.map((item,id)=>(
-            <QuickAccessCard key={id} route={item.route} icon={item.icon} title={item.title} description={item.description} />
+      </section>
+
+      <section className="flex flex-col gap-4">
+        <div>
+          <h2 className="text-xl font-black">Quick Access</h2>
+          <p className="text-sm text-gray-500">Open one of the four complete study modes.</p>
+        </div>
+        <div className="grid min-w-0 grid-cols-[repeat(4,minmax(0,1fr))] gap-4 max-laptop:grid-cols-2 max-mobile:grid-cols-1">
+          {quickAccess.map((item) => (
+            <QuickAccessCard key={item.route} route={item.route} icon={item.icon} title={item.title} description={item.description} />
           ))}
         </div>
-      </div>
+      </section>
+    </main>
+  );
+}
+
+function Metric({ value, label }: { value: string; label: string }): React.ReactElement {
+  return (
+    <div className="rounded-lg border bg-white p-3 shadow-sm">
+      <div className="text-2xl font-black text-primaryColor">{value}</div>
+      <div className="text-xs font-semibold text-gray-500">{label}</div>
     </div>
   );
 }

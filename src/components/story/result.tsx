@@ -88,7 +88,6 @@ export const ResultStory = ({
         return(
             <button onClick={()=> {
                 newStory()
-                console.log('yes its gonna work')
             }} className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg bg-primaryColor/90 hover:bg-primaryColor text-white shadow-lg font-semibold max-tablet:text-xs transition-all duration-150 cursor-pointer">+ New Story</button>
         )
     }

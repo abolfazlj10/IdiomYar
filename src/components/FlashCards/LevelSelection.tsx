@@ -18,7 +18,7 @@ interface LevelSelectionProps {
 const levels: Level[] = [
   {
     id: 'elementary',
-    name: 'Elementry Level',
+    name: 'Elementary Level',
     description: 'Basic and everyday idioms',
     color: 'from-green-400 to-green-600',
     icon: 'Seedling.svg'

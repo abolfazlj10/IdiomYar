@@ -52,7 +52,7 @@ const SideBarDetail: React.FC<SideBarDetailProps> = ({
                     return (
                       <div key={index} className={`px-4 py-3 rounded-xl text-base flex items-center justify-center gap-3 transition-all duration-200 bg-white/20 backdrop-blur-sm border-primaryColor hover:bg-white/40 ${isLastAndOdd ? 'col-span-2' : ''}`} style={{ borderWidth: 1 }}>
                         <IconComponent className={`${iconColor} text-2xl`} />
-                        <span className="font-semibold text-gray-800">{levelName.charAt(0).toUpperCase() + levelName.slice(1)}</span>
+                        <span className="font-semibold text-gray-800">{levelName === "elementry" ? "Elementary" : levelName.charAt(0).toUpperCase() + levelName.slice(1)}</span>
                       </div>
                     );
                   })}
@@ -161,7 +161,7 @@ const SideBarDetail: React.FC<SideBarDetailProps> = ({
           </div>
           <div>
             <div className="border-3 text-sm backdrop-blur-2xl justify-self-start py-1 px-4 font-semibold rounded-xl bg-blue-500/50 -mb-5 -ml-4 z-20 relative select-none">Information :</div>
-            <textarea placeholder="Write some information for the story that you want!" className="placeholder:select-none resize-none min-h-[100px] text-base font-semibold text-center rounded-xl bg-white/20 border pt-6 px-5 w-full outline-0 placeholder:text-xs placeholder:text-gray-400" 
+            <textarea placeholder="Add a topic, setting, or character for the story." className="placeholder:select-none resize-none min-h-[100px] text-base font-semibold text-center rounded-xl bg-white/20 border pt-6 px-5 w-full outline-0 placeholder:text-xs placeholder:text-gray-400"
               value={information}
               onChange={e => setInformation(e.target.value)}
             />
@@ -180,7 +180,7 @@ const SideBarDetail: React.FC<SideBarDetailProps> = ({
             }
           }}
         >
-          {loadingStory ? <span className="flex items-center gap-2">Generating<FaSpinner className="animate-spin text-2xl" /></span> : 'Create Story =>'}
+          {loadingStory ? <span className="flex items-center gap-2">Generating<FaSpinner className="animate-spin text-2xl" /></span> : 'Create Story ->'}
         </div>
       </div>
     </div>

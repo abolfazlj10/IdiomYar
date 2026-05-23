@@ -18,6 +18,7 @@ import Stepper from "@/components/story/stepper"
 import ResultStory from "@/components/story/result";
 import { useScrollFade } from "@/hooks/useScrollFade";
 import { useGeminiStory } from "@/hooks/useGemini";
+import { addStory } from "@/lib/storage";
 import { toast } from 'react-hot-toast';
 const MAX_WORDS_LIMIT = 6;
 
@@ -152,13 +153,19 @@ export default function Story () {
                     setStoryFa(data.storyFa || "");
                     setStoryEn(data.storyEn || "");
                     setShowStory(true);
+                    addStory({
+                        idioms: words,
+                        information,
+                        story: data.story || "",
+                        storyFa: data.storyFa || "",
+                        storyEn: data.storyEn || "",
+                    });
+                    toast.success("Story saved to Archive.");
                 } else {
-                    setStory("Error: Invalid response from server");
+                    setStory(data?.error || data?.story || "Story creation failed.");
                     setStoryFa("");
                     setStoryEn("");
-                    toast.error(
-                        `Story creation request failed.\nIf your VPN is turned off, please enable it and try again.`
-                    );
+                    toast.error(data?.error || "Story creation failed. Please try again.");
                 }
                 setLoadingStory(false);
             },
@@ -166,10 +173,7 @@ export default function Story () {
                 setStory("Error generating story: " + (err && err.message ? err.message : "Unknown error"));
                 setStoryFa("");
                 setStoryEn("");
-                // حتی اگر err پیام نداشت یا undefined بود، toast را نمایش بده
-                toast.error(
-                    `Story creation request failed.\nIf your VPN is turned off, please enable it and try again.`
-                );
+                toast.error("Story creation failed. Please try again.");
                 setLoadingStory(false);
             }
         });
@@ -284,7 +288,7 @@ export default function Story () {
                     <ResultStory isShow={setShowStory} newStory={NewStorySetting} theStory={story} storyPersian={storyFa} storyEnglish={storyEn}  />
                 ) : (
                     <>
-                        <Appbar onBackClick={()=> router.push('/')} title='Story creator' iconSrc="./icon/Otter.svg" rightButton={isLargeScreen ? false : <button className="border shadow-lg text-xl max-tablet:text-lg bg-gradient-to-br from-primaryColor from-50% to-bgColor text-white rounded-lg p-2 max-tablet:py-[6px] max-tablet:px-2 cursor-pointer" onClick={()=>dialogModal.current?.showModal()}><TbTimeline /></button>}/>
+                        <Appbar onBackClick={()=> router.push('/')} title='Story Creator' iconSrc="./icon/Otter.svg" rightButton={isLargeScreen ? false : <button className="border shadow-lg text-xl max-tablet:text-lg bg-gradient-to-br from-primaryColor from-50% to-bgColor text-white rounded-lg p-2 max-tablet:py-[6px] max-tablet:px-2 cursor-pointer" onClick={()=>dialogModal.current?.showModal()}><TbTimeline /></button>}/>
                         <Stepper steper={steper} />
                         <div className="grid desktop:grid-cols-[7fr_2fr] max-desktop:grid-cols-none gap-3 flex-1 max-[1500px]:gap-3 max-laptop:gap-0">
                             {/* Level - Lessons - Words */}
@@ -293,7 +297,7 @@ export default function Story () {
                                 <div className="flex flex-col gap-3 max-mobile:px-0">
                                     <div className="flex flex-col gap-1 max-laptop:gap-1 select-none px-2 max-mobile:px-0">
                                         <div className="text-2xl max-laptop:text-lg max-tablet:text-base font-semibold">Select Level</div>
-                                        <div className="text-gray-400 text-sm max-laptop:text-xs max-tablet:text-xs">Select your level that you wanna see its words</div>
+                                        <div className="text-gray-400 text-sm max-laptop:text-xs max-tablet:text-xs">Choose a level, then select a lesson and up to six idioms.</div>
                                     </div>
                                     <div className="flex gap-10 px-2 max-mobile:px-0 max-mobile:pr-2 max-[2000px]:gap-3 max-tablet:gap-3 max-laptop:flex-col">
                                         <div onClick={()=> selectLevel('elementry')} className={`border-2 max-laptop:border-2 flex-1 p-6 max-laptop:py-4 max-[2000px]:p-4 max-[1500px]:py-2 max-tablet:py-2 max-tablet:px-2 rounded-xl shadow-lg flex flex-col max-laptop:grid max-laptop:grid-cols-[auto_8fr] gap-5 max-[2000px]:gap-3 items-start duration-300 cursor-pointer hover:-translate-y-1 hover:shadow-2xl relative ${currentSelectedLevel === 'elementry' ? 'border-green-400' : 'border-gray-300 hover:border-green-300'}`}>
@@ -303,11 +307,11 @@ export default function Story () {
                                                 </div>
                                             )}
                                             <div className="text-3xl max-tablet:text-3xl max-mobile:lg px-2 py-1 border border-gray-400/10 rounded-lg"><TbBoxMultiple1 /></div>
-                                            <div className="text-base font-semibold flex select-none items-center gap-2 max-laptop:flex-col max-laptop:gap-1 max-laptop:hidden"><span>Elementry</span><span className="text-2xs text-blue-400 max-[1340px]:text-xs">{elementry.levels[0].lessons.length} lesson</span></div>
-                                            <div className="text-gray-400 max-[2000px]:text-xs max-[1315px]:text-sm max-laptop:mt-auto max-laptop:hidden">lorem ipsum a text for testing.</div>
+                                            <div className="text-base font-semibold flex select-none items-center gap-2 max-laptop:flex-col max-laptop:gap-1 max-laptop:hidden"><span>Elementary</span><span className="text-2xs text-blue-400 max-[1340px]:text-xs">{elementry.levels[0].lessons.length} lessons</span></div>
+                                            <div className="text-gray-400 max-[2000px]:text-xs max-[1315px]:text-sm max-laptop:mt-auto max-laptop:hidden">Core idioms for everyday situations.</div>
                                             <div className="min-laptop:hidden flex flex-col gap-2 max-tablet:gap-1">
-                                                <div className="font-semibold grid grid-cols-[auto_1fr] gap-4 items-center select-none text-lg max-tablet:text-base max-mobile:text-sm"><span>Elementry</span><span className="text-sm text-blue-400 max-[1340px]:text-xs max-tablet:text-[10px]">{elementry.levels[0].lessons.length} lesson</span></div>
-                                                <div className="text-gray-400 max-laptop:text-sm max-tablet:text-xs">lorem ipsum a text for testing.</div>
+                                                <div className="font-semibold grid grid-cols-[auto_1fr] gap-4 items-center select-none text-lg max-tablet:text-base max-mobile:text-sm"><span>Elementary</span><span className="text-sm text-blue-400 max-[1340px]:text-xs max-tablet:text-[10px]">{elementry.levels[0].lessons.length} lessons</span></div>
+                                                <div className="text-gray-400 max-laptop:text-sm max-tablet:text-xs">Core idioms for everyday situations.</div>
                                             </div>
                                         </div>
                                         <div onClick={()=> selectLevel('intermediate')} className={`border-2 max-laptop:border-2 flex-1 p-6 max-laptop:py-4 max-[2000px]:p-4 max-[1500px]:py-2 max-tablet:py-2 max-tablet:px-2 rounded-xl shadow-lg flex flex-col max-laptop:grid max-laptop:grid-cols-[auto_8fr] gap-5 max-[2000px]:gap-3 items-start duration-300 cursor-pointer hover:-translate-y-1 hover:shadow-2xl relative ${currentSelectedLevel === 'intermediate' ? 'border-blue-400' : 'border-gray-300 hover:border-blue-300'}`}>
@@ -317,11 +321,11 @@ export default function Story () {
                                                 </div>
                                             )}
                                             <div className="text-3xl max-tablet:text-3xl max-mobile:lg px-2 py-1 border border-gray-400/10 rounded-lg"><TbBoxMultiple2 /></div>
-                                            <div className="text-base font-semibold flex select-none items-center gap-2 max-laptop:flex-col max-laptop:gap-1 max-laptop:hidden"><span>Intermediate</span><span className="text-2xs text-blue-400 max-[1340px]:text-xs">{intermediate.levels[0].lessons.length} lesson</span></div>
-                                            <div className="text-gray-400 max-[2000px]:text-xs max-[1315px]:text-sm max-laptop:mt-auto max-laptop:hidden">lorem ipsum a text for testing.</div>
+                                            <div className="text-base font-semibold flex select-none items-center gap-2 max-laptop:flex-col max-laptop:gap-1 max-laptop:hidden"><span>Intermediate</span><span className="text-2xs text-blue-400 max-[1340px]:text-xs">{intermediate.levels[0].lessons.length} lessons</span></div>
+                                            <div className="text-gray-400 max-[2000px]:text-xs max-[1315px]:text-sm max-laptop:mt-auto max-laptop:hidden">Practical idioms for richer expression.</div>
                                             <div className="min-laptop:hidden flex flex-col gap-2 max-tablet:gap-1">
-                                                <div className="font-semibold grid grid-cols-[auto_1fr] gap-4 items-center select-none text-lg max-tablet:text-base max-mobile:text-sm"><span>Intermediate</span><span className="text-sm text-blue-400 max-[1340px]:text-xs max-tablet:text-[10px]">{intermediate.levels[0].lessons.length} lesson</span></div>
-                                                <div className="text-gray-400 max-laptop:text-sm max-tablet:text-xs">lorem ipsum a text for testing.</div>
+                                                <div className="font-semibold grid grid-cols-[auto_1fr] gap-4 items-center select-none text-lg max-tablet:text-base max-mobile:text-sm"><span>Intermediate</span><span className="text-sm text-blue-400 max-[1340px]:text-xs max-tablet:text-[10px]">{intermediate.levels[0].lessons.length} lessons</span></div>
+                                                <div className="text-gray-400 max-laptop:text-sm max-tablet:text-xs">Practical idioms for richer expression.</div>
                                             </div>
                                         </div>
                                         <div onClick={()=> selectLevel('advanced')} className={`border-2 max-laptop:border-2 flex-1 p-6 max-laptop:py-4 max-[2000px]:p-4 max-[1500px]:py-2 max-tablet:py-2 max-tablet:px-2 rounded-xl shadow-lg flex flex-col max-laptop:grid max-laptop:grid-cols-[auto_8fr] gap-5 max-[2000px]:gap-3 items-start duration-300 cursor-pointer hover:-translate-y-1 hover:shadow-2xl relative ${currentSelectedLevel === 'advanced' ? 'border-red-400' : 'border-gray-300 hover:border-red-300'}`}>
@@ -331,11 +335,11 @@ export default function Story () {
                                                 </div>
                                             )}
                                             <div className="text-3xl max-tablet:text-3xl max-mobile:lg px-2 py-1 border border-gray-400/10 rounded-lg"><TbBoxMultiple3 /></div>
-                                            <div className="text-base font-semibold flex select-none items-center gap-2 max-laptop:flex-col max-laptop:gap-1 max-laptop:hidden"><span>Advanced</span><span className="text-2xs text-blue-400 max-[1340px]:text-xs">{advanced.levels[0].lessons.length} lesson</span></div>
-                                            <div className="text-gray-400 max-[2000px]:text-xs max-[1315px]:text-sm max-laptop:mt-auto max-laptop:hidden">lorem ipsum a text for testing.</div>
+                                            <div className="text-base font-semibold flex select-none items-center gap-2 max-laptop:flex-col max-laptop:gap-1 max-laptop:hidden"><span>Advanced</span><span className="text-2xs text-blue-400 max-[1340px]:text-xs">{advanced.levels[0].lessons.length} lessons</span></div>
+                                            <div className="text-gray-400 max-[2000px]:text-xs max-[1315px]:text-sm max-laptop:mt-auto max-laptop:hidden">Nuanced idioms for confident fluency.</div>
                                             <div className="min-laptop:hidden flex flex-col gap-2 max-tablet:gap-1">
-                                                <div className="font-semibold grid grid-cols-[auto_1fr] gap-4 items-center select-none text-lg max-tablet:text-base max-mobile:text-sm"><span>Advanced</span><span className="text-sm text-blue-400 max-[1340px]:text-xs max-tablet:text-[10px]">{advanced.levels[0].lessons.length} lesson</span></div>
-                                                <div className="text-gray-400 max-laptop:text-sm max-tablet:text-xs">lorem ipsum a text for testing.</div>
+                                                <div className="font-semibold grid grid-cols-[auto_1fr] gap-4 items-center select-none text-lg max-tablet:text-base max-mobile:text-sm"><span>Advanced</span><span className="text-sm text-blue-400 max-[1340px]:text-xs max-tablet:text-[10px]">{advanced.levels[0].lessons.length} lessons</span></div>
+                                                <div className="text-gray-400 max-laptop:text-sm max-tablet:text-xs">Nuanced idioms for confident fluency.</div>
                                             </div>
                                         </div>
                                     </div>
@@ -345,7 +349,7 @@ export default function Story () {
                                     {/* desktop => title Select Words */}
                                     <div className="flex flex-col gap-1 max-laptop:gap-1 select-none">
                                         <div className="text-2xl max-laptop:text-lg max-tablet:text-base font-semibold">Select Words</div>
-                                        <div className="text-gray-400 text-sm max-laptop:text-base max-tablet:text-xs">Select your words after that you selected the lesson</div>
+                                        <div className="text-gray-400 text-sm max-laptop:text-base max-tablet:text-xs">Select idioms from the lesson to include in your story.</div>
                                         <div className="flex items-center gap-3">
                                             <div className="flex-1 bg-gray-100 rounded-full h-[6px] max-laptop:h-1 shadow-inner border border-gray-200">
                                                 <div 
@@ -471,7 +475,7 @@ export default function Story () {
                                                     </div>
                                                 </div>
                                             : 
-                                                <div className="h-full flex items-center justify-center text-xs">at first you must select the lesson which you want</div>
+                                                <div className="h-full flex items-center justify-center text-xs">Select a lesson to see its idioms.</div>
                                             }
                                         </div>
                                     </div>
@@ -567,7 +571,7 @@ export default function Story () {
                                                     })()}
                                                 </div>
                                             : 
-                                                <div className="h-full flex items-center justify-center max-desktop:text-sm max-laptop:text-xs">at first you must select the lesson which you want</div>
+                                                <div className="h-full flex items-center justify-center max-desktop:text-sm max-laptop:text-xs">Select a lesson to see its idioms.</div>
                                             }
                                         </div>
                                     </div>
@@ -575,9 +579,14 @@ export default function Story () {
                                 {/* mobile => input infomation * bottom selection lesson words */}
                                 <div className="mx-2 desktop:hidden">
                                     <div className="select-none px-2 max-mobile:px-0 mb-3 max-laptop:mb-1">
-                                        <div className="text-[30px] max-laptop:text-[25px] max-tablet:text-base font-semibold">Informations</div>
+                                        <div className="text-[30px] max-laptop:text-[25px] max-tablet:text-base font-semibold">Story Details</div>
                                     </div>
-                                    <textarea className="border min-h-[100px] max-tablet:min-h-0 w-full rounded-xl p-2 outline-0 text-sm placeholder:max-tablet:text-sm max-tablet:text-sm" placeholder="Write what you want in this story, AI will build it!"></textarea>
+                                    <textarea
+                                        className="border min-h-[100px] max-tablet:min-h-0 w-full rounded-xl p-2 outline-0 text-sm placeholder:max-tablet:text-sm max-tablet:text-sm"
+                                        placeholder="Add a topic, setting, or character for the story."
+                                        value={information}
+                                        onChange={(event) => setInformation(event.target.value)}
+                                    />
                                 </div>
                             </div>
                             {/* Sidebar Detail */}
@@ -605,7 +614,7 @@ export default function Story () {
                                 }
                             }}
                         >
-                            {loadingStory ? <span className="flex items-center gap-2">Generating<FaSpinner className="animate-spin text-2xl" /></span> : 'Create Story =>'} 
+                            {loadingStory ? <span className="flex items-center gap-2">Generating<FaSpinner className="animate-spin text-2xl" /></span> : 'Create Story ->'}
                         </div>
                         {/* mobile => dialog modal details */}
                         <dialog ref={dialogModal} className="modal">
@@ -629,7 +638,7 @@ export default function Story () {
                                                         return (
                                                             <div key={index} className={`px-4 py-3 rounded-xl text-base flex items-center justify-center gap-3 transition-all duration-200 bg-white/20 backdrop-blur-sm border-primaryColor hover:bg-white/40`} style={{ borderWidth: 1 }}>
                                                                 <IconComponent className={`${iconColor} text-2xl`} />
-                                                                <span className="font-semibold text-gray-800">{levelName.charAt(0).toUpperCase() + levelName.slice(1)}</span>
+                                                                <span className="font-semibold text-gray-800">{levelName === "elementry" ? "Elementary" : levelName.charAt(0).toUpperCase() + levelName.slice(1)}</span>
                                                             </div>
                                                         )
                                                     })}
