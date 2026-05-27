@@ -1,33 +1,31 @@
-import React, { useEffect, useState } from "react";
-import { MdOutlineKeyboardBackspace } from "react-icons/md";
+import React from "react";
 
 interface AppbarProps {
   onBackClick?: () => void;
-  title:string;
-  iconSrc:string;
-  rightButton:React.ReactNode;
+  title: string;
+  iconSrc: string;
+  rightButton: React.ReactNode;
 }
 
-const Appbar: React.FC<AppbarProps> = ({ onBackClick, title, iconSrc, rightButton }) => {
-  const [isClient, setIsClient] = useState<boolean>(false)
-  useEffect(()=>{
-    setIsClient(true)
-  },[])
-   return (
-    <div className="flex items-center justify-between">
-      {isClient ? (
-        <>
-          <button className="flex items-center gap-2 max-mobile:gap-1 px-4 py-2 text-xs max-laptop:px-3 max-mobile:py-2 max-mobile:px-2 rounded-lg bg-white/90 hover:bg-primaryColor/10 shadow border border-gray-200 text-gray-700 max-tablet:text-2xs font-semibold transition-all duration-150 cursor-pointer" onClick={onBackClick}>
-              <span className="text-xs">←</span> Back
-          </button>
-          <div className="text-2xl max-[1340px]:text-[25px] max-laptop:text-[23px] max-tablet:text-[18px] duration-100 font-extrabold flex items-center justify-center gap-2 max-tablet:gap-1 select-none drop-shadow-sm">
-              {title} <img src={iconSrc} className="w-8 max-tablet:w-6"/>
-          </div>
-          {rightButton ? rightButton : <div></div>}
-        </>
-      ) : (
-        <div></div>
-      )} 
-  </div>
-)}
-export default Appbar;
+export default function Appbar({ onBackClick, title, iconSrc, rightButton }: AppbarProps): React.ReactElement {
+  return (
+    <header className="flex min-w-0 items-center justify-between gap-3">
+      <button
+        type="button"
+        className="flex min-h-10 shrink-0 items-center gap-2 rounded-lg border border-border bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm transition-colors duration-150 hover:border-primary/30 hover:bg-accent max-mobile:min-h-11 max-mobile:px-2"
+        onClick={onBackClick}
+        aria-label="Go back"
+      >
+        <span aria-hidden="true" className="text-sm">
+          &lt;-
+        </span>
+        Back
+      </button>
+      <div className="flex min-w-0 flex-1 items-center justify-center gap-2 text-center text-xl font-black tracking-tight text-slate-950 max-tablet:text-lg max-mobile:text-base">
+        <span className="truncate">{title}</span>
+        <img src={iconSrc} alt="" className="size-7 shrink-0 max-tablet:size-6" />
+      </div>
+      <div className="flex min-w-10 shrink-0 justify-end">{rightButton ? rightButton : null}</div>
+    </header>
+  );
+}

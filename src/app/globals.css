@@ -5,10 +5,12 @@
 @font-face {
   font-family: 'interVariable';
   src: url('/fonts/Inter-VariableFont_opsz,wght.ttf');
+  font-display: swap;
 }
 @font-face {
   font-family: 'iranYekan';
   src: url('/fonts/IRANYekanX-Regular.woff2');
+  font-display: swap;
 }
 
 
@@ -52,12 +54,16 @@
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  --radius-xl: var(--radius);
   --font-interVariable: 'interVariable';
   --font-iranYekan:'iranYekan';
-  --color-bgColor:#a5b2ff;
-  --color-primaryColor:#5c6bec;
-  --color-hilightColor:#A855F7;
+  --color-bgColor:#f8fafc;
+  --color-primaryColor:#2563eb;
+  --color-hilightColor:#0f766e;
+  --color-success:#16a34a;
+  --color-review:#d97706;
+  --color-surface:#ffffff;
+  --color-softBorder:#e2e8f0;
   --breakpoint-mobile:640px;
   --breakpoint-tablet:768px;
   --breakpoint-laptop:1024px;
@@ -67,42 +73,42 @@
   --text-4xs: 6px;
 }
 ::selection {
-  @apply bg-hilightColor/50 duration-200;
+  @apply bg-primaryColor/15;
 }
 
 :root {
-  --radius: 0.625rem;
+  --radius: 0.5rem;
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.13 0.028 261.692);
+  --card-foreground: oklch(0.19 0.02 260);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.13 0.028 261.692);
-  --primary: oklch(0.21 0.034 264.665);
-  --primary-foreground: oklch(0.985 0.002 247.839);
-  --secondary: oklch(0.967 0.003 264.542);
-  --secondary-foreground: oklch(0.21 0.034 264.665);
-  --muted: oklch(0.967 0.003 264.542);
-  --muted-foreground: oklch(0.551 0.027 264.364);
-  --accent: oklch(0.967 0.003 264.542);
-  --accent-foreground: oklch(0.21 0.034 264.665);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.928 0.006 264.531);
-  --input: oklch(0.928 0.006 264.531);
-  --ring: oklch(0.707 0.022 261.325);
+  --popover-foreground: oklch(0.19 0.02 260);
+  --primary: oklch(0.55 0.19 258);
+  --primary-foreground: oklch(0.99 0.002 247);
+  --secondary: oklch(0.96 0.01 255);
+  --secondary-foreground: oklch(0.24 0.03 260);
+  --muted: oklch(0.96 0.01 255);
+  --muted-foreground: oklch(0.47 0.025 260);
+  --accent: oklch(0.95 0.025 255);
+  --accent-foreground: oklch(0.24 0.03 260);
+  --destructive: oklch(0.58 0.22 27);
+  --border: oklch(0.9 0.01 255);
+  --input: oklch(0.9 0.01 255);
+  --ring: oklch(0.63 0.16 258);
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
   --chart-4: oklch(0.828 0.189 84.429);
   --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0.002 247.839);
-  --sidebar-foreground: oklch(0.13 0.028 261.692);
-  --sidebar-primary: oklch(0.21 0.034 264.665);
-  --sidebar-primary-foreground: oklch(0.985 0.002 247.839);
-  --sidebar-accent: oklch(0.967 0.003 264.542);
-  --sidebar-accent-foreground: oklch(0.21 0.034 264.665);
-  --sidebar-border: oklch(0.928 0.006 264.531);
-  --sidebar-ring: oklch(0.707 0.022 261.325);
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.13 0.028 261.692);
+  --sidebar: oklch(0.99 0.002 247);
+  --sidebar-foreground: oklch(0.19 0.02 260);
+  --sidebar-primary: oklch(0.55 0.19 258);
+  --sidebar-primary-foreground: oklch(0.99 0.002 247);
+  --sidebar-accent: oklch(0.96 0.01 255);
+  --sidebar-accent-foreground: oklch(0.24 0.03 260);
+  --sidebar-border: oklch(0.9 0.01 255);
+  --sidebar-ring: oklch(0.63 0.16 258);
+  --background: oklch(0.985 0.004 247);
+  --foreground: oklch(0.19 0.02 260);
 }
 
 .dark {
@@ -167,21 +173,23 @@
 }
 
 .customScrollBarStyle::-webkit-scrollbar-track {
-  background: var(--color-bgColor);
+  background: transparent;
   border-radius: 10px;
 }
 
 .customScrollBarStyle::-webkit-scrollbar-thumb {
-  background: var(--color-bgColor);
+  background: #cbd5e1;
   border-radius: 10px;
-  border: 2px solid var(--color-bgColor);
+  border: 2px solid transparent;
+  background-clip: content-box;
 }
 
 .customScrollBarStyle::-webkit-scrollbar-thumb:hover {
-  background: var(--color-primaryColor);
+  background: #94a3b8;
+  background-clip: content-box;
 }
 
 .customScrollBarStyle {
   scrollbar-width: thin;
-  scrollbar-color: var(--color-bgColor) rgba(0, 0, 0, 0);
+  scrollbar-color: #cbd5e1 rgba(0, 0, 0, 0);
 }

@@ -282,13 +282,13 @@ export default function Story () {
     }, []);
 
     return(
-        <div className="h-full border-1 max-mobile:border-0 p-5 max-mobile:pt-3 max-mobile:pb-1 max-mobile:px-2 overflow-y-auto">
-            <div className="h-full flex flex-col gap-3">
+        <div className="min-h-[calc(100dvh-2rem)] min-w-0 overflow-y-auto pb-4 pt-2 max-mobile:min-h-dvh max-mobile:overflow-visible">
+            <div className="flex h-full min-w-0 flex-col gap-3 max-mobile:h-auto">
                 {showStory ? (
                     <ResultStory isShow={setShowStory} newStory={NewStorySetting} theStory={story} storyPersian={storyFa} storyEnglish={storyEn}  />
                 ) : (
                     <>
-                        <Appbar onBackClick={()=> router.push('/')} title='Story Creator' iconSrc="./icon/Otter.svg" rightButton={isLargeScreen ? false : <button className="border shadow-lg text-xl max-tablet:text-lg bg-gradient-to-br from-primaryColor from-50% to-bgColor text-white rounded-lg p-2 max-tablet:py-[6px] max-tablet:px-2 cursor-pointer" onClick={()=>dialogModal.current?.showModal()}><TbTimeline /></button>}/>
+                        <Appbar onBackClick={()=> router.push('/')} title='Story Creator' iconSrc="/icon/Otter.svg" rightButton={isLargeScreen ? false : <button type="button" aria-label="Open story timeline" className="min-h-10 rounded-lg border border-border bg-white p-2 text-xl text-slate-700 shadow-sm transition-colors duration-150 hover:bg-accent max-tablet:text-lg max-tablet:px-2 max-tablet:py-[6px]" onClick={()=>dialogModal.current?.showModal()}><TbTimeline /></button>}/>
                         <Stepper steper={steper} />
                         <div className="grid desktop:grid-cols-[7fr_2fr] max-desktop:grid-cols-none gap-3 flex-1 max-[1500px]:gap-3 max-laptop:gap-0">
                             {/* Level - Lessons - Words */}

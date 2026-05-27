@@ -52,11 +52,11 @@ export default function Archive(): React.ReactElement {
   }, []);
 
   return (
-    <main className="flex h-full flex-col gap-4 overflow-hidden p-5 max-mobile:p-3">
+    <main className="flex min-h-[calc(100dvh-2rem)] min-w-0 flex-col gap-4 overflow-hidden pb-4 pt-2 max-mobile:min-h-dvh max-mobile:overflow-visible">
       <Appbar title="Archive & Review" iconSrc="/icon/Open Book.svg" rightButton={<div />} onBackClick={() => history.back()} />
 
       <section className="grid min-h-0 flex-1 grid-cols-[320px_minmax(0,1fr)] gap-4 max-laptop:grid-cols-1">
-        <aside className="flex min-h-0 flex-col gap-3 rounded-lg border bg-white/80 p-3 shadow-sm max-laptop:max-h-[420px]">
+        <aside className="flex min-h-0 flex-col gap-3 rounded-lg border border-border bg-white p-3 shadow-sm max-laptop:max-h-[420px]">
           <div className="grid grid-cols-3 gap-2">
             <TabButton active={tab === "stories"} label={`Stories ${stories.length}`} onClick={() => setTab("stories")} />
             <TabButton active={tab === "bookmarks"} label={`Saved ${bookmarks.length}`} onClick={() => setTab("bookmarks")} />
@@ -117,7 +117,7 @@ export default function Archive(): React.ReactElement {
           </Button>
         </aside>
 
-        <section className="min-h-0 overflow-y-auto rounded-lg border bg-white p-5 shadow-sm customScrollBarStyle">
+        <section className="min-h-0 overflow-y-auto rounded-lg border border-border bg-white p-5 shadow-sm customScrollBarStyle">
           {tab === "stories" ? (
             openStory ? (
               <StoryDetail

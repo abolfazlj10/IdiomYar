@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, ArrowRight, CheckCircle2, Eye, RotateCcw, Shuffle, Star } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { ArrowLeft, ArrowRight, CheckCircle2, ChevronDown, Eye, RotateCcw, Shuffle, Star } from "lucide-react";
 import Appbar from "@/components/appbar";
 import { Button } from "@/components/ui/button";
 import { getAllIdioms, getIdiomsForLesson, getLessons, LEVELS, type IdiomEntry } from "@/lib/idioms";
 import { getProgress, markCard, type StudyProgress } from "@/lib/storage";
-import type { LevelId } from "@/types/types";
+import type { Lesson, LevelId } from "@/types/types";
 
 const DEFAULT_LEVEL: LevelId = "elementary";
 
@@ -60,6 +60,22 @@ type SessionStats = {
   review: number;
 };
 
+type DeckSelectorProps = {
+  activeLevel: LevelId;
+  activeLesson: number;
+  knownInDeck: number;
+  lessons: Lesson[];
+  reviewDeckLength: number;
+  reviewInDeck: number;
+  reviewMode: boolean;
+  onLessonChange: (lesson: number) => void;
+  onLevelChange: (level: LevelId) => void;
+  onReviewModeChange: (reviewMode: boolean) => void;
+};
+
+const selectorButton =
+  "min-h-11 rounded-lg border px-3 py-2 text-sm font-bold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-primary/25 max-mobile:min-h-12";
+
 export default function Cards({ searchParams }: CardsPageProps): React.ReactElement {
   const requestedLevelParam = getParam(searchParams?.level);
   const requestedLessonParam = getParam(searchParams?.lesson);
@@ -92,8 +108,13 @@ export default function Cards({ searchParams }: CardsPageProps): React.ReactElem
   }, [deckOrder, sourceDeck]);
   const current = deck[currentIndex];
   const lessons = getLessons(activeLevel);
+  const activeLevelMeta = LEVELS.find((level) => level.id === activeLevel) ?? LEVELS[0];
   const knownInDeck = sourceDeck.filter((idiom) => progress.known[idiom.id]).length;
   const reviewInDeck = sourceDeck.filter((idiom) => progress.review[idiom.id]).length;
+  const progressPercent = deck.length ? Math.round(((currentIndex + 1) / deck.length) * 100) : 0;
+  const remaining = Math.max(deck.length - currentIndex - 1, 0);
+  const deckTitle = reviewMode ? "Review Deck" : `Lesson ${activeLesson}`;
+  const deckSubtitle = reviewMode ? `${reviewDeck.length} cards marked for review` : `${activeLevelMeta.label} - ${sourceDeck.length} cards`;
 
   useEffect(() => {
     setProgress(getProgress());
@@ -124,10 +145,13 @@ export default function Cards({ searchParams }: CardsPageProps): React.ReactElem
     setStats({ known: 0, review: 0 });
   }, [sourceDeck]);
 
-  const move = (direction: number): void => {
-    setShowAnswer(false);
-    setCurrentIndex((index) => Math.min(Math.max(index + direction, 0), Math.max(deck.length - 1, 0)));
-  };
+  const move = useCallback(
+    (direction: number): void => {
+      setShowAnswer(false);
+      setCurrentIndex((index) => Math.min(Math.max(index + direction, 0), Math.max(deck.length - 1, 0)));
+    },
+    [deck.length]
+  );
 
   const shuffleDeck = (): void => {
     setDeckOrder([...sourceDeck].sort(() => Math.random() - 0.5).map((idiom) => idiom.id));
@@ -135,197 +159,338 @@ export default function Cards({ searchParams }: CardsPageProps): React.ReactElem
     setShowAnswer(false);
   };
 
-  const mark = (status: "known" | "review"): void => {
-    if (!current) {
-      return;
-    }
+  const mark = useCallback(
+    (status: "known" | "review"): void => {
+      if (!current) {
+        return;
+      }
 
-    setProgress(markCard(current.id, status));
-    setStats((value) => ({ ...value, [status]: value[status] + 1 }));
-    move(1);
-  };
+      setProgress(markCard(current.id, status));
+      setStats((value) => ({ ...value, [status]: value[status] + 1 }));
+      move(1);
+    },
+    [current, move]
+  );
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent): void => {
+      const target = event.target as HTMLElement | null;
+      const tagName = target?.tagName;
+
+      if (tagName && ["A", "BUTTON", "INPUT", "SELECT", "SUMMARY", "TEXTAREA"].includes(tagName)) {
+        return;
+      }
+
+      if (!current) {
+        return;
+      }
+
+      if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        move(-1);
+      }
+
+      if (event.key === "ArrowRight") {
+        event.preventDefault();
+        move(1);
+      }
+
+      if ((event.key === " " || event.key === "Enter") && !showAnswer) {
+        event.preventDefault();
+        setShowAnswer(true);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [current, move, showAnswer]);
 
   return (
-    <main className="flex h-full flex-col gap-4 overflow-hidden p-5 max-mobile:p-3">
+    <main className="mx-auto flex min-h-[calc(100dvh-2rem)] w-full min-w-0 flex-col gap-4 pb-32 pt-2 laptop:h-[calc(100dvh-2rem)] laptop:overflow-hidden laptop:pb-0">
       <Appbar title="Flash Cards" iconSrc="/icon/Seedling.svg" rightButton={<div />} onBackClick={() => history.back()} />
 
-      <section className="grid min-h-0 flex-1 grid-cols-[300px_minmax(0,1fr)] gap-4 max-laptop:grid-cols-1">
-        <aside className="flex min-h-0 flex-col gap-3 rounded-lg border bg-white/80 p-3 shadow-sm max-laptop:max-h-[360px]">
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              onClick={() => setReviewMode(false)}
-              className={`rounded-lg border px-3 py-2 text-sm font-bold ${!reviewMode ? "border-primaryColor bg-primaryColor/10 text-primaryColor" : "bg-white text-gray-600"}`}
-            >
-              Lessons
-            </button>
-            <button
-              type="button"
-              onClick={() => setReviewMode(true)}
-              className={`rounded-lg border px-3 py-2 text-sm font-bold ${reviewMode ? "border-primaryColor bg-primaryColor/10 text-primaryColor" : "bg-white text-gray-600"}`}
-            >
-              Review ({reviewDeck.length})
-            </button>
-          </div>
-
-          {!reviewMode ? (
-            <>
-              <div className="grid grid-cols-3 gap-2">
-                {LEVELS.map((level) => (
-                  <button
-                    key={level.id}
-                    type="button"
-                    onClick={() => setActiveLevel(level.id)}
-                    className={`rounded-lg border px-2 py-2 text-xs font-bold transition ${
-                      activeLevel === level.id ? level.softAccent : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
-                    }`}
-                  >
-                    {level.label}
-                  </button>
-                ))}
-              </div>
-
-              <div className="min-h-0 flex-1 overflow-y-auto pr-1 customScrollBarStyle">
-                <div className="grid grid-cols-2 gap-2">
-                  {lessons.map((lesson) => (
-                    <button
-                      key={lesson.lesson_number}
-                      type="button"
-                      onClick={() => setActiveLesson(lesson.lesson_number)}
-                      className={`rounded-lg border p-3 text-left transition ${
-                        activeLesson === lesson.lesson_number ? "border-primaryColor bg-primaryColor/10" : "border-gray-200 bg-white hover:border-primaryColor/40"
-                      }`}
-                    >
-                      <div className="text-sm font-bold">Lesson {lesson.lesson_number}</div>
-                      <div className="mt-1 text-xs text-gray-500">{getIdiomsForLesson(activeLevel, lesson.lesson_number).length} cards</div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </>
-          ) : (
-            <div className="rounded-lg border border-blue-100 bg-blue-50 p-4 text-sm leading-6 text-blue-900">
-              Review mode collects every idiom you marked as “Review again” across the app.
-            </div>
-          )}
-
-          <div className="grid grid-cols-2 gap-2 rounded-lg border bg-gray-50 p-3 text-center">
-            <Metric label="Known" value={knownInDeck} />
-            <Metric label="Review" value={reviewInDeck} />
-          </div>
+      <section className="grid min-h-0 flex-1 gap-4 laptop:grid-cols-[300px_minmax(0,1fr)]">
+        <aside className="hidden min-h-0 flex-col gap-3 rounded-lg border border-border bg-white p-3 shadow-sm laptop:flex">
+          <DeckSelector
+            activeLevel={activeLevel}
+            activeLesson={activeLesson}
+            knownInDeck={knownInDeck}
+            lessons={lessons}
+            reviewDeckLength={reviewDeck.length}
+            reviewInDeck={reviewInDeck}
+            reviewMode={reviewMode}
+            onLessonChange={setActiveLesson}
+            onLevelChange={setActiveLevel}
+            onReviewModeChange={setReviewMode}
+          />
         </aside>
 
-        <section className="flex min-h-0 flex-col gap-4 rounded-lg border bg-white p-5 shadow-sm">
-          <div className="flex items-center justify-between gap-3 max-mobile:flex-col max-mobile:items-stretch">
-            <div>
-              <h1 className="text-2xl font-black">{reviewMode ? "Review Deck" : `Lesson ${activeLesson}`}</h1>
-              <p className="text-sm text-gray-500">
-                {deck.length ? `Card ${currentIndex + 1} of ${deck.length}` : "No cards in this deck yet."}
-              </p>
+        <section className="flex min-h-0 flex-col gap-4">
+          <details className="group rounded-lg border border-border bg-white shadow-sm laptop:hidden">
+            <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-left [&::-webkit-details-marker]:hidden">
+              <div className="min-w-0">
+                <div className="text-xs font-bold uppercase tracking-[0.12em] text-primary">Deck</div>
+                <div className="truncate text-sm font-black text-slate-950">
+                  {reviewMode ? "Review Deck" : `${activeLevelMeta.label} - Lesson ${activeLesson}`}
+                </div>
+              </div>
+              <ChevronDown className="size-5 shrink-0 text-slate-500 transition-transform group-open:rotate-180" />
+            </summary>
+            <div className="border-t border-border p-3">
+              <DeckSelector
+                activeLevel={activeLevel}
+                activeLesson={activeLesson}
+                knownInDeck={knownInDeck}
+                lessons={lessons}
+                reviewDeckLength={reviewDeck.length}
+                reviewInDeck={reviewInDeck}
+                reviewMode={reviewMode}
+                onLessonChange={setActiveLesson}
+                onLevelChange={setActiveLevel}
+                onReviewModeChange={setReviewMode}
+              />
             </div>
-            <div className="flex gap-2">
-              <Button type="button" variant="outline" onClick={shuffleDeck} disabled={!deck.length}>
-                <Shuffle className="size-4" />
-                Shuffle
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  setCurrentIndex(0);
-                  setShowAnswer(false);
-                  setStats({ known: 0, review: 0 });
-                }}
-                disabled={!deck.length}
-              >
-                <RotateCcw className="size-4" />
-                Reset
-              </Button>
-            </div>
-          </div>
+          </details>
 
-          {current ? (
-            <>
-              <div className="flex min-h-[320px] flex-1 items-center justify-center rounded-lg border border-gray-200 bg-gradient-to-br from-white to-blue-50/70 p-8 text-center">
-                <div className="max-w-3xl">
-                  <div className="mb-3 text-xs font-bold uppercase tracking-wide text-primaryColor">
-                    {current.levelLabel} · Lesson {current.lessonNumber}
-                  </div>
-                  <h2 className="text-4xl font-black max-tablet:text-3xl">{current.english_phrase}</h2>
-                  {showAnswer ? (
-                    <div className="mt-8 grid gap-4 text-left">
-                      <div className="rounded-lg border bg-white p-4">
-                        <div className="mb-1 text-xs font-bold uppercase text-gray-500">Meaning</div>
-                        <p className="font-iranYekan text-lg text-gray-800" dir="rtl">
-                          {current.persian_phrase_meaning}
-                        </p>
-                      </div>
-                      <div className="rounded-lg border bg-white p-4">
-                        <div className="mb-1 text-xs font-bold uppercase text-gray-500">Definition</div>
-                        <p className="text-gray-800">{current.english_definition}</p>
-                      </div>
-                      {current.examples?.[0] ? (
-                        <div className="rounded-lg border bg-white p-4">
-                          <div className="mb-1 text-xs font-bold uppercase text-gray-500">Example</div>
-                          <p className="font-semibold">{current.examples[0].english_text}</p>
-                          <p className="mt-2 font-iranYekan text-sm text-gray-700" dir="rtl">
-                            {current.examples[0].persian_meaning}
-                          </p>
-                        </div>
-                      ) : null}
+          <div className="flex min-h-0 flex-1 flex-col gap-4 rounded-lg border border-border bg-white p-4 shadow-sm mobile:p-5">
+            <div className="flex flex-col gap-4 tablet:flex-row tablet:items-start tablet:justify-between">
+              <div className="min-w-0">
+                <p className="text-xs font-bold uppercase tracking-[0.12em] text-primary">{deckSubtitle}</p>
+                <h1 className="mt-1 text-2xl font-black tracking-tight text-slate-950 mobile:text-3xl">{deckTitle}</h1>
+                <p className="mt-1 text-sm text-slate-500">
+                  {deck.length ? `Card ${currentIndex + 1} of ${deck.length}` : "No cards in this deck yet."}
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <Button type="button" variant="outline" onClick={shuffleDeck} disabled={!deck.length} className="flex-1 tablet:flex-none">
+                  <Shuffle className="size-4" />
+                  Shuffle
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setCurrentIndex(0);
+                    setShowAnswer(false);
+                    setStats({ known: 0, review: 0 });
+                  }}
+                  disabled={!deck.length}
+                  className="flex-1 tablet:flex-none"
+                >
+                  <RotateCcw className="size-4" />
+                  Reset
+                </Button>
+              </div>
+            </div>
+
+            <div className="rounded-full bg-slate-100" aria-hidden="true">
+              <div className="h-2 rounded-full bg-primary transition-[width] duration-300" style={{ width: `${progressPercent}%` }} />
+            </div>
+
+            {current ? (
+              <>
+                <article className="flex min-h-[390px] flex-1 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 p-5 text-center mobile:min-h-[430px] tablet:p-8">
+                  <div className="w-full max-w-3xl">
+                    <div className="text-xs font-bold uppercase tracking-[0.14em] text-primary">
+                      {current.levelLabel} - Lesson {current.lessonNumber}
                     </div>
-                  ) : (
-                    <Button type="button" className="mt-8" onClick={() => setShowAnswer(true)}>
-                      <Eye className="size-4" />
-                      Reveal answer
-                    </Button>
-                  )}
-                </div>
-              </div>
+                    <h2 className="mt-4 text-3xl font-black leading-tight tracking-tight text-slate-950 mobile:text-4xl">{current.english_phrase}</h2>
+                    {showAnswer ? (
+                      <div className="mt-7 divide-y divide-slate-200 text-left">
+                        <AnswerBlock title="Meaning" rtl text={current.persian_phrase_meaning} />
+                        <AnswerBlock title="Definition" text={current.english_definition} />
+                        {current.examples?.[0] ? (
+                          <div className="pt-5">
+                            <div className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">Example</div>
+                            <p className="mt-2 text-sm font-semibold leading-6 text-slate-900 mobile:text-base">{current.examples[0].english_text}</p>
+                            <p dir="rtl" className="mt-2 font-iranYekan text-sm leading-7 text-slate-700">
+                              {current.examples[0].persian_meaning}
+                            </p>
+                          </div>
+                        ) : null}
+                      </div>
+                    ) : (
+                      <Button type="button" size="lg" className="mt-8" onClick={() => setShowAnswer(true)}>
+                        <Eye className="size-4" />
+                        Reveal answer
+                      </Button>
+                    )}
+                  </div>
+                </article>
 
-              <div className="flex items-center justify-between gap-3 max-mobile:flex-col">
-                <Button type="button" variant="outline" onClick={() => move(-1)} disabled={currentIndex === 0}>
-                  <ArrowLeft className="size-4" />
-                  Previous
-                </Button>
-                <div className="flex gap-2 max-mobile:w-full max-mobile:flex-col">
-                  <Button type="button" variant="outline" onClick={() => mark("review")}>
+                <div className="hidden grid-cols-[1fr_1.2fr_1.2fr_1fr] gap-3 laptop:grid">
+                  <Button type="button" size="lg" variant="outline" onClick={() => move(-1)} disabled={currentIndex === 0}>
+                    <ArrowLeft className="size-4" />
+                    Previous
+                  </Button>
+                  <Button type="button" size="lg" variant="review" onClick={() => mark("review")}>
                     <Star className="size-4" />
-                    Review again
+                    Review Again
                   </Button>
-                  <Button type="button" onClick={() => mark("known")}>
+                  <Button type="button" size="lg" variant="success" onClick={() => mark("known")}>
                     <CheckCircle2 className="size-4" />
-                    Know it
+                    Know It
+                  </Button>
+                  <Button type="button" size="lg" onClick={() => move(1)} disabled={currentIndex >= deck.length - 1}>
+                    Next
+                    <ArrowRight className="size-4" />
                   </Button>
                 </div>
-                <Button type="button" variant="outline" onClick={() => move(1)} disabled={currentIndex >= deck.length - 1}>
-                  Next
-                  <ArrowRight className="size-4" />
-                </Button>
+              </>
+            ) : (
+              <div className="flex min-h-[320px] flex-1 items-center justify-center rounded-lg border border-dashed border-slate-300 bg-slate-50 p-8 text-center text-sm text-slate-500">
+                {reviewMode ? "No review cards yet. Mark a few cards as Review Again to build this deck." : "No cards found."}
               </div>
-            </>
-          ) : (
-            <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed text-center text-sm text-gray-500">
-              {reviewMode ? "No review cards yet. Mark a few cards as Review again to build this deck." : "No cards found."}
-            </div>
-          )}
+            )}
 
-          <div className="grid grid-cols-3 gap-3 max-mobile:grid-cols-1">
-            <Metric label="Answered known" value={stats.known} />
-            <Metric label="Sent to review" value={stats.review} />
-            <Metric label="Remaining" value={Math.max(deck.length - currentIndex - 1, 0)} />
+            <div className="grid grid-cols-3 gap-2">
+              <Metric label="Known" value={stats.known} />
+              <Metric label="Review" value={stats.review} />
+              <Metric label="Remaining" value={remaining} />
+            </div>
           </div>
         </section>
       </section>
+
+      {current ? (
+        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/95 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-10px_30px_rgba(15,23,42,0.10)] backdrop-blur laptop:hidden">
+          <div className="mx-auto grid max-w-2xl gap-2">
+            <div className="grid grid-cols-2 gap-2">
+              <Button type="button" variant="outline" onClick={() => move(-1)} disabled={currentIndex === 0}>
+                <ArrowLeft className="size-4" />
+                Previous
+              </Button>
+              <Button type="button" onClick={() => move(1)} disabled={currentIndex >= deck.length - 1}>
+                Next
+                <ArrowRight className="size-4" />
+              </Button>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <Button type="button" variant="review" onClick={() => mark("review")}>
+                <Star className="size-4" />
+                Review Again
+              </Button>
+              <Button type="button" variant="success" onClick={() => mark("known")}>
+                <CheckCircle2 className="size-4" />
+                Know It
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </main>
+  );
+}
+
+function DeckSelector({
+  activeLevel,
+  activeLesson,
+  knownInDeck,
+  lessons,
+  reviewDeckLength,
+  reviewInDeck,
+  reviewMode,
+  onLessonChange,
+  onLevelChange,
+  onReviewModeChange,
+}: DeckSelectorProps): React.ReactElement {
+  return (
+    <>
+      <div className="grid grid-cols-2 gap-2">
+        <button
+          type="button"
+          aria-pressed={!reviewMode}
+          onClick={() => onReviewModeChange(false)}
+          className={`${selectorButton} ${
+            !reviewMode ? "border-primary bg-primary/10 text-primary" : "border-border bg-white text-slate-600 hover:bg-slate-50"
+          }`}
+        >
+          Lessons
+        </button>
+        <button
+          type="button"
+          aria-pressed={reviewMode}
+          onClick={() => onReviewModeChange(true)}
+          className={`${selectorButton} ${
+            reviewMode ? "border-primary bg-primary/10 text-primary" : "border-border bg-white text-slate-600 hover:bg-slate-50"
+          }`}
+        >
+          Review ({reviewDeckLength})
+        </button>
+      </div>
+
+      {!reviewMode ? (
+        <>
+          <div className="grid grid-cols-3 gap-2">
+            {LEVELS.map((level) => (
+              <button
+                key={level.id}
+                type="button"
+                aria-pressed={activeLevel === level.id}
+                onClick={() => onLevelChange(level.id)}
+                className={`${selectorButton} px-2 text-xs ${
+                  activeLevel === level.id ? level.softAccent : "border-border bg-white text-slate-600 hover:bg-slate-50"
+                }`}
+              >
+                {level.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="min-h-0 flex-1 overflow-y-auto pr-1 customScrollBarStyle max-laptop:max-h-72">
+            <div className="grid grid-cols-2 gap-2">
+              {lessons.map((lesson) => {
+                const cardsCount = getIdiomsForLesson(activeLevel, lesson.lesson_number).length;
+                const isActive = activeLesson === lesson.lesson_number;
+
+                return (
+                  <button
+                    key={lesson.lesson_number}
+                    type="button"
+                    aria-current={isActive ? "true" : undefined}
+                    onClick={() => onLessonChange(lesson.lesson_number)}
+                    className={`min-h-16 rounded-lg border p-3 text-left transition-colors duration-150 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-primary/25 ${
+                      isActive ? "border-primary bg-primary/10 text-slate-950" : "border-border bg-white text-slate-700 hover:border-primary/35"
+                    }`}
+                  >
+                    <div className="text-sm font-black">Lesson {lesson.lesson_number}</div>
+                    <div className="mt-1 text-xs font-semibold text-slate-500">{cardsCount} cards</div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </>
+      ) : (
+        <div className="rounded-lg border border-blue-100 bg-blue-50 p-4 text-sm leading-6 text-blue-950">
+          Review mode collects every idiom you marked as Review Again across the app.
+        </div>
+      )}
+
+      <div className="grid grid-cols-2 gap-2 rounded-lg border border-border bg-slate-50 p-3 text-center">
+        <Metric label="Known" value={knownInDeck} />
+        <Metric label="Review" value={reviewInDeck} />
+      </div>
+    </>
+  );
+}
+
+function AnswerBlock({ title, text, rtl = false }: { title: string; text?: string | null; rtl?: boolean }): React.ReactElement {
+  return (
+    <div className="py-5 first:pt-0">
+      <div className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">{title}</div>
+      <p dir={rtl ? "rtl" : "ltr"} className={`${rtl ? "font-iranYekan text-right text-lg leading-8" : "text-sm leading-7 mobile:text-base"} mt-2 text-slate-800`}>
+        {text || "No extra note for this idiom."}
+      </p>
+    </div>
   );
 }
 
 function Metric({ label, value }: { label: string; value: number }): React.ReactElement {
   return (
-    <div className="rounded-lg border bg-white px-3 py-2">
-      <div className="text-lg font-black text-gray-900">{value}</div>
-      <div className="text-xs font-semibold text-gray-500">{label}</div>
+    <div className="rounded-lg border border-slate-200 bg-white px-3 py-2">
+      <div className="text-lg font-black text-slate-950">{value}</div>
+      <div className="text-xs font-semibold text-slate-500">{label}</div>
     </div>
   );
 }

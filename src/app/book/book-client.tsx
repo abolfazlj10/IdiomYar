@@ -126,11 +126,11 @@ export default function Book({ searchParams }: BookPageProps): React.ReactElemen
   const isBookmarked = (idiom: IdiomEntry): boolean => bookmarks.some((item) => item.id === idiom.id);
 
   return (
-    <main className="flex h-full flex-col gap-4 overflow-hidden p-5 max-mobile:p-3">
+    <main className="flex min-h-[calc(100dvh-2rem)] min-w-0 flex-col gap-4 overflow-hidden pb-4 pt-2 max-mobile:min-h-dvh max-mobile:overflow-visible">
       <Appbar title="Book Study" iconSrc="/icon/Open Book.svg" rightButton={<div />} onBackClick={() => history.back()} />
 
       <section className="grid min-h-0 flex-1 grid-cols-[290px_minmax(0,1fr)] gap-4 max-laptop:grid-cols-1">
-        <aside className="flex min-h-0 flex-col gap-3 rounded-lg border bg-white/80 p-3 shadow-sm max-laptop:max-h-[360px]">
+        <aside className="flex min-h-0 flex-col gap-3 rounded-lg border border-border bg-white p-3 shadow-sm max-laptop:max-h-[360px]">
           <div className="grid grid-cols-3 gap-2">
             {LEVELS.map((level) => (
               <button
@@ -202,8 +202,8 @@ export default function Book({ searchParams }: BookPageProps): React.ReactElemen
           </div>
         </aside>
 
-        <section className="grid min-h-0 grid-cols-[minmax(260px,360px)_minmax(0,1fr)] gap-4 max-tablet:grid-cols-1">
-          <div className="min-h-0 overflow-y-auto rounded-lg border bg-white/80 p-3 shadow-sm customScrollBarStyle">
+        <section className="grid min-h-0 grid-cols-[minmax(260px,360px)_minmax(0,1fr)] gap-4 max-tablet:grid-cols-1 max-mobile:min-h-0">
+          <div className="min-h-0 overflow-y-auto rounded-lg border border-border bg-white p-3 shadow-sm customScrollBarStyle">
             <div className="mb-3 flex items-center justify-between">
               <div>
                 <h2 className="text-lg font-bold">{query.trim() ? "Search Results" : `Lesson ${activeLesson}`}</h2>
@@ -230,27 +230,28 @@ export default function Book({ searchParams }: BookPageProps): React.ReactElemen
             </div>
           </div>
 
-          <article className="min-h-0 overflow-y-auto rounded-lg border bg-white p-5 shadow-sm customScrollBarStyle">
+          <article className="min-h-0 overflow-y-auto rounded-lg border border-border bg-white p-5 shadow-sm customScrollBarStyle">
             {selectedIdiom ? (
               <div className="flex flex-col gap-5">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
+                <div className="flex items-start justify-between gap-4 max-mobile:flex-col">
+                  <div className="min-w-0">
                     <div className="mb-2 text-xs font-bold uppercase tracking-wide text-primaryColor">
                       {selectedIdiom.levelLabel} · Lesson {selectedIdiom.lessonNumber}
                     </div>
                     <h1 className="text-3xl font-black max-tablet:text-2xl">{selectedIdiom.english_phrase}</h1>
                     <p className="mt-2 font-iranYekan text-lg text-gray-700">{selectedIdiom.persian_phrase_meaning}</p>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex shrink-0 gap-2 max-mobile:grid max-mobile:w-full max-mobile:grid-cols-2">
                     <Button
                       type="button"
                       variant={progress.studied[selectedIdiom.id] ? "secondary" : "outline"}
+                      className="max-mobile:w-full"
                       onClick={() => setProgress(markStudied(selectedIdiom.id, !progress.studied[selectedIdiom.id]))}
                     >
                       <CheckCircle2 className="size-4" />
                       {progress.studied[selectedIdiom.id] ? "Studied" : "Mark studied"}
                     </Button>
-                    <Button type="button" variant="outline" onClick={() => setBookmarks(toggleBookmark(selectedIdiom))}>
+                    <Button type="button" variant="outline" className="max-mobile:w-full" onClick={() => setBookmarks(toggleBookmark(selectedIdiom))}>
                       {isBookmarked(selectedIdiom) ? <BookmarkCheck className="size-4" /> : <Bookmark className="size-4" />}
                       {isBookmarked(selectedIdiom) ? "Saved" : "Save"}
                     </Button>
