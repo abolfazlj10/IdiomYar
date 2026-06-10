@@ -17,7 +17,7 @@ import SideBarDetail from '@/components/story/sidebar'
 import Stepper from "@/components/story/stepper"
 import ResultStory from "@/components/story/result";
 import { useScrollFade } from "@/hooks/useScrollFade";
-import { useGeminiStory } from "@/hooks/useGemini";
+import { useStoryGenerator } from "@/hooks/useStory";
 import { addStory } from "@/lib/storage";
 import { toast } from 'react-hot-toast';
 const MAX_WORDS_LIMIT = 6;
@@ -45,7 +45,7 @@ export default function Story () {
     const [story, setStory] = useState<string>("");
     const [storyFa, setStoryFa] = useState<string>("");
     const [storyEn, setStoryEn] = useState<string>("");
-    const {mutate: storyCreator} = useGeminiStory()
+    const {mutate: storyCreator} = useStoryGenerator()
 
     const scrollFade = useScrollFade();
 

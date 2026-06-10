@@ -60,6 +60,8 @@ const DEFAULT_STUDY_FOCUS_STATE: StudyFocusState = {
   translationsVisibleByDefault: true,
   revealedTranslations: {},
 };
+const VISIBLE_STUDY_CONTENT_CLASS = "blur-0 opacity-100";
+const HIDDEN_STUDY_CONTENT_CLASS = "select-none blur-[5px] opacity-60";
 
 function getParam(value: string | string[] | undefined): string | null {
   return Array.isArray(value) ? value[0] ?? null : value ?? null;
@@ -185,6 +187,16 @@ export default function Book({ searchParams }: BookPageProps): React.ReactElemen
   const selectedExamples = selectedIdiom?.examples ?? [];
   const savedPersonalSentence = selectedIdiom ? personalExamples[selectedIdiom.id]?.text ?? "" : "";
   const personalSentenceChanged = personalSentence.trim() !== savedPersonalSentence;
+  const selectedExamplesLabel = `${selectedExamples.length} example${selectedExamples.length === 1 ? "" : "s"}`;
+  const studyFocusSummary = !selectedExamples.length
+    ? "No examples for this idiom yet"
+    : studyFocus.examplesVisible && studyFocus.translationsVisibleByDefault
+      ? `${selectedExamplesLabel} with Persian translations`
+      : studyFocus.examplesVisible
+        ? `${selectedExamplesLabel}; Persian translations hidden`
+        : studyFocus.translationsVisibleByDefault
+          ? "English examples hidden; Persian translations visible"
+          : "English examples and Persian translations hidden";
   const isDefaultStudyFocus =
     studyFocus.examplesVisible && studyFocus.translationsVisibleByDefault && !Object.keys(studyFocus.revealedTranslations).length;
 
@@ -439,9 +451,7 @@ export default function Book({ searchParams }: BookPageProps): React.ReactElemen
                   <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
                     <div>
                       <h2 className="text-lg font-bold">Examples</h2>
-                      <p className="mt-1 text-xs font-semibold text-gray-500">
-                        {studyFocus.examplesVisible ? `${selectedExamples.length} example(s) available` : "Examples hidden for recall"}
-                      </p>
+                      <p className="mt-1 text-xs font-semibold text-gray-500">{studyFocusSummary}</p>
                     </div>
                     <div className="flex flex-wrap gap-2">
                       <Button
@@ -451,13 +461,13 @@ export default function Book({ searchParams }: BookPageProps): React.ReactElemen
                         onClick={() => handleExamplesVisibilityChange(!studyFocus.examplesVisible)}
                       >
                         {studyFocus.examplesVisible ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-                        {studyFocus.examplesVisible ? "Hide examples" : "Show examples"}
+                        {studyFocus.examplesVisible ? "Hide English examples" : "Show English examples"}
                       </Button>
                       <Button
                         type="button"
                         size="sm"
                         variant={studyFocus.translationsVisibleByDefault ? "secondary" : "outline"}
-                        disabled={!studyFocus.examplesVisible || !selectedExamples.length}
+                        disabled={!selectedExamples.length}
                         onClick={() => handleTranslationsVisibilityChange(!studyFocus.translationsVisibleByDefault)}
                       >
                         {studyFocus.translationsVisibleByDefault ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
@@ -470,15 +480,7 @@ export default function Book({ searchParams }: BookPageProps): React.ReactElemen
                     </div>
                   </div>
 
-                  {!studyFocus.examplesVisible ? (
-                    <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-5 text-center">
-                      <p className="text-sm font-semibold text-gray-600">Examples are hidden for focused recall.</p>
-                      <Button type="button" variant="outline" className="mt-3" onClick={() => handleExamplesVisibilityChange(true)}>
-                        <Eye className="size-4" />
-                        Show examples
-                      </Button>
-                    </div>
-                  ) : selectedExamples.length ? (
+                  {selectedExamples.length ? (
                     <div className="grid gap-3">
                       {selectedExamples.map((example, index) => {
                         const exampleKey = getExampleKey(selectedIdiom.id, index, example.english_text);
@@ -488,7 +490,13 @@ export default function Book({ searchParams }: BookPageProps): React.ReactElemen
                         return (
                           <div key={exampleKey} className="rounded-lg border border-gray-200 bg-gray-50 p-4">
                             <div className="flex items-start justify-between gap-3">
-                              <p dir="ltr" className="min-w-0 font-semibold leading-7 text-gray-900">
+                              <p
+                                dir="ltr"
+                                aria-hidden={!studyFocus.examplesVisible}
+                                className={`min-w-0 font-semibold leading-7 text-gray-900 transition-all duration-150 ${
+                                  studyFocus.examplesVisible ? VISIBLE_STUDY_CONTENT_CLASS : HIDDEN_STUDY_CONTENT_CLASS
+                                }`}
+                              >
                                 {example.english_text}
                               </p>
                               {!studyFocus.translationsVisibleByDefault ? (
@@ -500,21 +508,19 @@ export default function Book({ searchParams }: BookPageProps): React.ReactElemen
                                 >
                                   {translationVisible ? <EyeOff className="size-4" aria-hidden="true" /> : <Eye className="size-4" aria-hidden="true" />}
                                 </button>
-                              ) : null}
+                              ) : (
+                                <span className="size-10 shrink-0" aria-hidden="true" />
+                              )}
                             </div>
-                            {translationVisible ? (
-                              <p dir="rtl" className="mt-2 font-iranYekan text-sm leading-7 text-gray-700">
-                                {example.persian_meaning}
-                              </p>
-                            ) : (
-                              <div className="mt-3 flex items-center justify-between gap-3 rounded-lg border border-dashed border-gray-300 bg-white px-3 py-2">
-                                <span className="text-xs font-bold text-gray-500">Persian translation hidden</span>
-                                <Button type="button" size="sm" variant="ghost" onClick={() => handleExampleTranslationVisibilityChange(exampleKey, true)}>
-                                  <Eye className="size-4" />
-                                  Reveal
-                                </Button>
-                              </div>
-                            )}
+                            <p
+                              dir="rtl"
+                              aria-hidden={!translationVisible}
+                              className={`mt-2 font-iranYekan text-sm leading-7 text-gray-700 transition-all duration-150 ${
+                                translationVisible ? VISIBLE_STUDY_CONTENT_CLASS : HIDDEN_STUDY_CONTENT_CLASS
+                              }`}
+                            >
+                              {example.persian_meaning}
+                            </p>
                           </div>
                         );
                       })}
