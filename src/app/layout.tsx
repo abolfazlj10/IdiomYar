@@ -4,8 +4,8 @@ import "./globals.css";
 import Providers from "./provider";
 
 export const metadata: Metadata = {
-  title: "Essential Idioms in English",
-  description: "Essential Idioms in English",
+  title: "IdiomYar",
+  description: "Practice, remember, and review English idioms with flash cards, lessons, stories, and saved review.",
 };
 
 export default function RootLayout({

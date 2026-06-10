@@ -1,19 +1,23 @@
 import Link from "next/link";
 import {
   ArrowRight,
-  BookOpen,
-  CheckCircle2,
-  Clock3,
-  ExternalLink,
-  Github,
-  Library,
-  NotebookTabs,
+  Brain,
+  Compass,
+  Layers3,
+  PenLine,
+  RefreshCcw,
   Sparkles,
+  Target,
+  Zap,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import QuickAccessCard from "@/components/quickAccessCard";
-import { Button } from "@/components/ui/button";
-import { getAllIdioms, getLessons, LEVELS } from "@/lib/idioms";
+import { LandingHeader } from "@/components/landing/LandingHeader";
+import { HeroOrbit } from "@/components/landing/HeroOrbit";
+import { IdiomShowcase } from "@/components/landing/IdiomShowcase";
+import { LessonMap } from "@/components/landing/LessonMap";
+import { StudyModeRail } from "@/components/landing/StudyModeRail";
+import { getAllIdioms, getIdiomsForLesson, getLessons, LEVELS } from "@/lib/idioms";
+import type { LevelId } from "@/types/types";
 
 const numberFormatter = new Intl.NumberFormat("en-US");
 
@@ -21,220 +25,177 @@ const githubProfileUrl = "https://github.com/abolfazlj10";
 const githubRepoUrl = "https://github.com/abolfazlj10/essential-idioms-in-english";
 const githubAvatarUrl = `${githubProfileUrl}.png?size=96`;
 
-const idiomCount = getAllIdioms().length;
+const allIdioms = getAllIdioms();
+const idiomCount = allIdioms.length;
 const lessonCount = LEVELS.reduce((total, level) => total + getLessons(level.id).length, 0);
 
-const quickAccess = [
+const featuredIdiom =
+  getIdiomsForLesson("intermediate", 14).find((idiom) => idiom.english_phrase === "cut and dried") ?? allIdioms[0]!;
+
+const sampleIdioms = [
+  featuredIdiom,
+  getIdiomsForLesson("elementary", 1)[0] ?? allIdioms[0]!,
+  getIdiomsForLesson("advanced", 28)[0] ?? allIdioms[0]!,
+];
+
+const navItems = [
+  { href: "/cards", label: "Cards" },
+  { href: "/book", label: "Lessons" },
+  { href: "/story", label: "Stories" },
+  { href: "/archive", label: "Review" },
+];
+
+const studyModes = [
   {
-    icon: <NotebookTabs />,
+    icon: Layers3,
     title: "Flash Cards",
-    description: "A focused card session for quick recall.",
-    route: "/cards",
-    cta: "Start practice",
-    meta: "Start here",
-    tone: "blue" as const,
-    featured: true,
+    description: "Fast recall sessions for the phrases that need another pass.",
+    href: "/cards",
+    cta: "Practice now",
+    accent: "violet",
   },
   {
-    icon: <BookOpen />,
-    title: "Book Study",
-    description: "Read the lesson only when you need context.",
-    route: "/book",
-    cta: "Read lessons",
-    meta: `${numberFormatter.format(lessonCount)} lessons`,
-    tone: "emerald" as const,
+    icon: Compass,
+    title: "Lessons",
+    description: "A guided path through definitions, examples, and Persian meaning.",
+    href: "/book",
+    cta: "Open map",
+    accent: "sky",
   },
   {
-    icon: <Sparkles />,
-    title: "Story Creator",
-    description: "Use selected idioms in a short bilingual scene.",
-    route: "/story",
-    cta: "Create story",
-    meta: "Apply",
-    tone: "amber" as const,
+    icon: PenLine,
+    title: "Story Builder",
+    description: "Turn selected idioms into a short scene you can actually remember.",
+    href: "/story",
+    cta: "Build a story",
+    accent: "coral",
   },
   {
-    icon: <Library />,
-    title: "Archive & Review",
-    description: "Return to saved items and review them later.",
-    route: "/archive",
+    icon: RefreshCcw,
+    title: "Review",
+    description: "Return to saved phrases and keep your next session focused.",
+    href: "/archive",
     cta: "Review saved",
-    meta: "Saved",
-    tone: "slate" as const,
+    accent: "amber",
   },
-];
+] satisfies Array<{
+  icon: LucideIcon;
+  title: string;
+  description: string;
+  href: string;
+  cta: string;
+  accent: "violet" | "sky" | "coral" | "amber";
+}>;
 
-const metrics = [
-  { value: numberFormatter.format(idiomCount), label: "Idioms" },
-  { value: numberFormatter.format(lessonCount), label: "Lessons" },
-  { value: numberFormatter.format(quickAccess.length), label: "Modes" },
-];
+const levelVisuals = {
+  elementary: {
+    icon: Target,
+    accent: "amber",
+    marker: "bg-[#FFD84D]",
+    soft: "bg-[#FFF6CC] text-[#5F4600] border-[#F5D871]",
+  },
+  intermediate: {
+    icon: Brain,
+    accent: "sky",
+    marker: "bg-[#62C7FF]",
+    soft: "bg-[#E9F8FF] text-[#064B6D] border-[#B7E7FF]",
+  },
+  advanced: {
+    icon: Zap,
+    accent: "coral",
+    marker: "bg-[#FF6542]",
+    soft: "bg-[#FFF0EB] text-[#8A2D18] border-[#FFC7B8]",
+  },
+} satisfies Record<
+  LevelId,
+  {
+    icon: LucideIcon;
+    accent: "amber" | "sky" | "coral";
+    marker: string;
+    soft: string;
+  }
+>;
 
-const dailyLoop = [
-  {
-    title: "Practice",
-    description: "Start with a small flash-card round.",
-    icon: NotebookTabs,
-  },
-  {
-    title: "Clarify",
-    description: "Open the book for anything unclear.",
-    icon: BookOpen,
-  },
-  {
-    title: "Save",
-    description: "Keep difficult idioms for another pass.",
-    icon: CheckCircle2,
-  },
-];
+const levelSummaries = LEVELS.map((level, index) => ({
+  id: level.id,
+  label: level.label,
+  shortLabel: level.shortLabel,
+  description: level.description,
+  idioms: getAllIdioms(level.id).length,
+  lessons: getLessons(level.id).length,
+  order: index + 1,
+  ...levelVisuals[level.id],
+}));
 
 export default function Home(): React.ReactElement {
   return (
-    <main className="flex w-full min-w-0 flex-1 flex-col gap-10 pb-10 pt-4 mobile:gap-12 tablet:pt-8">
-      <div className="flex min-w-0 justify-end">
-        <div className="inline-flex max-w-full items-center gap-2 rounded-full border border-slate-200 bg-white/90 p-1 shadow-sm backdrop-blur">
-          <a
-            href={githubProfileUrl}
-            target="_blank"
-            rel="noreferrer"
-            aria-label="Open Abolfazl's GitHub profile"
-            className="inline-flex size-11 shrink-0 items-center justify-center rounded-full transition-transform duration-150 hover:scale-105 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/35"
-          >
-            <img
-              src={githubAvatarUrl}
-              alt="Abolfazl GitHub profile"
-              className="size-11 rounded-full border border-slate-200 object-cover ring-2 ring-white"
-            />
-          </a>
-          <Button
-            asChild
-            size="sm"
-            className="rounded-full bg-slate-950 px-4 text-white shadow-none hover:bg-slate-800 focus-visible:ring-slate-400/40"
-          >
-            <a href={githubRepoUrl} target="_blank" rel="noreferrer" aria-label="Open the project repository on GitHub">
-              <Github className="size-4" aria-hidden="true" />
-              GitHub
-              <ExternalLink className="size-3.5" aria-hidden="true" />
-            </a>
-          </Button>
-        </div>
-      </div>
+    <>
+      <LandingHeader
+        navItems={navItems}
+        githubRepoUrl={githubRepoUrl}
+        githubProfileUrl={githubProfileUrl}
+        githubAvatarUrl={githubAvatarUrl}
+      />
 
-      <section className="grid min-w-0 gap-8 laptop:grid-cols-[minmax(0,1fr)_340px] laptop:items-center">
-        <div className="min-w-0 py-2 tablet:py-6">
-          <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">Essential Idioms</p>
-          <h1 className="mt-4 max-w-3xl text-balance text-4xl font-black leading-[1.08] tracking-tight text-slate-950 mobile:text-5xl tablet:text-6xl">
-            A quieter way to remember idioms.
-          </h1>
-          <p className="mt-5 max-w-2xl text-pretty text-base leading-8 text-slate-600 mobile:text-lg">
-            Practice a small set, read only when you need context, and keep the hard ones for later.
-          </p>
+      <main className="flex min-w-0 flex-1 flex-col gap-10 pb-12 pt-4 tablet:gap-12 tablet:pt-5 laptop:gap-11">
+        <section
+          className="grid min-w-0 gap-7 overflow-hidden rounded-lg border border-[#E4DDD2] bg-[#FBFAF7] px-4 py-6 shadow-[0_18px_56px_rgba(11,16,32,0.07)] mobile:px-6 tablet:px-8 laptop:min-h-[460px] laptop:grid-cols-[minmax(0,0.92fr)_minmax(420px,1fr)] laptop:items-center laptop:px-10 laptop:py-8"
+          aria-labelledby="hero-heading"
+        >
+          <div className="min-w-0">
+            <p className="inline-flex w-fit items-center gap-2 rounded-lg border border-[#DFD8CC] bg-white/80 px-3 py-1.5 text-xs font-black uppercase tracking-[0.14em] text-[#5B2EFF] shadow-sm">
+              <Sparkles className="size-3.5" aria-hidden="true" />
+              Bilingual idiom practice
+            </p>
+            <h1
+              id="hero-heading"
+              className="mt-5 max-w-3xl text-balance text-4xl font-black leading-[1.04] tracking-[0] text-[#0B1020] mobile:text-5xl tablet:text-6xl"
+            >
+              Practice idioms until they click.
+            </h1>
+            <p className="mt-5 max-w-2xl text-pretty text-base leading-8 text-[#4E5668] mobile:text-lg">
+              Practice with flash cards, understand each phrase in Persian, and turn hard idioms into stories you remember.
+            </p>
 
-          <div className="mt-7 flex flex-col gap-3 mobile:flex-row">
-            <Button asChild size="lg" className="mobile:w-auto">
-              <Link href="/cards">
-                Start with cards
+            <div className="mt-7 flex flex-col gap-3 mobile:flex-row">
+              <Link
+                href="/cards"
+                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-[#0B1020] px-5 py-3 text-sm font-black text-white shadow-[0_16px_34px_rgba(11,16,32,0.2)] transition-[background-color,transform,box-shadow] duration-150 hover:-translate-y-0.5 hover:bg-[#1C2442] focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-[#5B2EFF]/30"
+              >
+                Start practicing
                 <ArrowRight className="size-4" aria-hidden="true" />
               </Link>
-            </Button>
-            <Button asChild variant="outline" size="lg" className="mobile:w-auto">
-              <Link href="/book">Browse lessons</Link>
-            </Button>
-          </div>
-
-          <dl className="mt-9 grid max-w-xl grid-cols-3 gap-6 border-y border-slate-200 py-5">
-            {metrics.map((item) => (
-              <Stat key={item.label} value={item.value} label={item.label} />
-            ))}
-          </dl>
-        </div>
-
-        <aside className="min-w-0 rounded-lg border border-slate-200 bg-white p-5 shadow-sm" aria-labelledby="daily-loop-heading">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Today</p>
-              <h2 id="daily-loop-heading" className="mt-1 text-xl font-black tracking-tight text-slate-950">
-                Simple study loop
-              </h2>
+              <Link
+                href="/book"
+                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg border border-[#D8D1C6] bg-white px-5 py-3 text-sm font-black text-[#0B1020] shadow-sm transition-[border-color,background-color,transform] duration-150 hover:-translate-y-0.5 hover:border-[#5B2EFF]/40 hover:bg-[#F4F1FF] focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-[#5B2EFF]/20"
+              >
+                Explore lessons
+              </Link>
             </div>
-            <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-primary">
-              <Clock3 className="size-5" aria-hidden="true" />
-            </span>
+
+            <dl className="mt-8 grid max-w-2xl grid-cols-3 gap-2 mobile:gap-3">
+              <HeroMetric value={numberFormatter.format(idiomCount)} label="Idioms" tone="text-[#5B2EFF]" />
+              <HeroMetric value={numberFormatter.format(lessonCount)} label="Lessons" tone="text-[#0677A8]" />
+              <HeroMetric value={numberFormatter.format(studyModes.length)} label="Modes" tone="text-[#B43A1D]" />
+            </dl>
           </div>
 
-          <div className="mt-6 space-y-5">
-            {dailyLoop.map((item) => (
-              <LoopItem key={item.title} {...item} />
-            ))}
-          </div>
-        </aside>
-      </section>
+          <HeroOrbit featuredIdiom={featuredIdiom} idiomCount={idiomCount} lessonCount={lessonCount} />
+        </section>
 
-      <section className="flex min-w-0 flex-col gap-5" aria-labelledby="study-modes-heading">
-        <div className="flex flex-col gap-2 mobile:flex-row mobile:items-end mobile:justify-between">
-          <div className="min-w-0">
-            <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">Study modes</p>
-            <h2 id="study-modes-heading" className="mt-2 text-2xl font-black tracking-tight text-slate-950 mobile:text-3xl">
-              Choose one path.
-            </h2>
-            <p className="mt-2 max-w-2xl text-sm leading-7 text-slate-600">
-              Start with recall, add context when needed, then review anything worth keeping.
-            </p>
-          </div>
-          <Button asChild variant="ghost" size="sm" className="w-fit text-primary hover:text-primary">
-            <Link href="/cards">
-              Resume practice
-              <ArrowRight className="size-4" aria-hidden="true" />
-            </Link>
-          </Button>
-        </div>
-        <div className="grid min-w-0 grid-cols-1 gap-4 tablet:grid-cols-2 laptop:grid-cols-4">
-          {quickAccess.map((item) => (
-            <QuickAccessCard
-              key={item.route}
-              route={item.route}
-              icon={item.icon}
-              title={item.title}
-              description={item.description}
-              cta={item.cta}
-              meta={item.meta}
-              featured={item.featured}
-              tone={item.tone}
-            />
-          ))}
-        </div>
-      </section>
-    </main>
+        <StudyModeRail modes={studyModes} />
+        <LessonMap levels={levelSummaries} numberFormatter={numberFormatter} />
+        <IdiomShowcase featuredIdiom={featuredIdiom} sampleIdioms={sampleIdioms} />
+      </main>
+    </>
   );
 }
 
-function Stat({ value, label }: { value: string; label: string }): React.ReactElement {
+function HeroMetric({ value, label, tone }: { value: string; label: string; tone: string }): React.ReactElement {
   return (
-    <div className="min-w-0">
-      <dt className="text-sm font-semibold text-slate-500">{label}</dt>
-      <dd className="mt-1 text-2xl font-black tabular-nums tracking-tight text-slate-950">{value}</dd>
-    </div>
-  );
-}
-
-function LoopItem({
-  title,
-  description,
-  icon: Icon,
-}: {
-  title: string;
-  description: string;
-  icon: LucideIcon;
-}): React.ReactElement {
-  return (
-    <div className="flex min-w-0 gap-3">
-      <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
-        <Icon className="size-4" aria-hidden="true" />
-      </span>
-      <div className="min-w-0">
-        <h3 className="text-sm font-black tracking-tight text-slate-950">{title}</h3>
-        <p className="mt-1 text-sm leading-6 text-slate-600">{description}</p>
-      </div>
+    <div className="min-w-0 rounded-lg border border-[#E2DCD2] bg-white/80 p-3 shadow-sm backdrop-blur mobile:p-4">
+      <dt className="text-xs font-bold tracking-[0] text-[#6C7280] mobile:text-sm">{label}</dt>
+      <dd className={`mt-2 text-2xl font-black tabular-nums tracking-[0] mobile:text-3xl ${tone}`}>{value}</dd>
     </div>
   );
 }
