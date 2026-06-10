@@ -177,6 +177,9 @@ export default function Book({ searchParams }: BookPageProps): React.ReactElemen
   const selectedIdiom = visibleIdioms.find((idiom) => idiom.id === selectedIdiomId) ?? visibleIdioms[0];
   const studiedCount = getAllIdioms(activeLevel).filter((idiom) => progress.studied[idiom.id]).length;
   const totalCount = getAllIdioms(activeLevel).length;
+  const levelProgressPercent = totalCount ? (studiedCount / totalCount) * 100 : 0;
+  const selectedIdiomIndex = selectedIdiom ? visibleIdioms.findIndex((idiom) => idiom.id === selectedIdiom.id) : -1;
+  const selectedIdiomPosition = selectedIdiomIndex >= 0 ? selectedIdiomIndex + 1 : 0;
   const selectedIdiomKey = selectedIdiom?.id ?? "";
   const selectedStatus = selectedIdiom ? getStudyStatus(selectedIdiom.id, progress) : "new";
   const selectedExamples = selectedIdiom?.examples ?? [];
@@ -274,53 +277,54 @@ export default function Book({ searchParams }: BookPageProps): React.ReactElemen
     <main className="flex min-h-[calc(100dvh-2rem)] min-w-0 flex-col gap-4 overflow-hidden pb-4 pt-2 max-mobile:min-h-dvh max-mobile:overflow-visible">
       <Appbar title="Lesson Study" iconSrc="/icon/Seedling.svg" rightButton={<div />} onBackClick={() => history.back()} />
 
-      <section className="grid min-h-0 flex-1 grid-cols-[290px_minmax(0,1fr)] gap-4 max-laptop:grid-cols-1">
-        <aside className="flex min-h-0 flex-col gap-3 rounded-lg border border-border bg-white p-3 shadow-sm max-laptop:max-h-[360px]">
-          <div className="grid grid-cols-3 gap-2">
-            {LEVELS.map((level) => (
-              <button
-                key={level.id}
-                type="button"
-                onClick={() => {
-                  setActiveLevel(level.id);
-                  setActiveLesson(getFirstLessonNumber(level.id));
-                  setSelectedIdiomId("");
-                  setQuery("");
-                }}
-                className={`rounded-lg border px-2 py-2 text-xs font-bold transition ${
-                  activeLevel === level.id ? level.softAccent : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
-                }`}
-              >
-                {level.label}
-              </button>
-            ))}
-          </div>
+      <section className="grid min-h-0 flex-1 grid-rows-[auto_minmax(0,1fr)] gap-4 max-mobile:min-h-0">
+        <section className="rounded-lg border border-border bg-white p-3 shadow-sm">
+          <div className="grid gap-3 laptop:grid-cols-[auto_minmax(220px,280px)_minmax(260px,1fr)] laptop:items-center">
+            <div className="flex flex-wrap gap-2">
+              {LEVELS.map((level) => (
+                <button
+                  key={level.id}
+                  type="button"
+                  onClick={() => {
+                    setActiveLevel(level.id);
+                    setActiveLesson(getFirstLessonNumber(level.id));
+                    setSelectedIdiomId("");
+                    setQuery("");
+                  }}
+                  className={`min-h-10 rounded-lg border px-3 text-sm font-bold transition ${
+                    activeLevel === level.id ? level.softAccent : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
+                  }`}
+                >
+                  {level.label}
+                </button>
+              ))}
+            </div>
 
-          <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
-            <div className="mb-1 text-xs font-semibold text-gray-500">Studied in this level</div>
-            <div className="flex items-center gap-3">
+            <div className="flex min-h-10 w-full items-center gap-3 rounded-lg border border-gray-200 bg-gray-50 px-3">
+              <span className="shrink-0 text-xs font-bold text-gray-500">Studied</span>
               <div className="h-2 flex-1 overflow-hidden rounded-full bg-white">
-                <div className="h-full rounded-full bg-primaryColor" style={{ width: `${totalCount ? (studiedCount / totalCount) * 100 : 0}%` }} />
+                <div className="h-full rounded-full bg-primaryColor" style={{ width: `${levelProgressPercent}%` }} />
               </div>
-              <span className="text-xs font-bold text-gray-700">
+              <span className="shrink-0 text-xs font-black text-gray-700">
                 {studiedCount}/{totalCount}
               </span>
             </div>
+
+            <label className="relative min-w-0">
+              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
+              <Input
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Search idioms, meanings, or lessons"
+                className="pl-9"
+              />
+            </label>
           </div>
 
-          <label className="relative block">
-            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
-            <Input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search idioms, meanings, or lessons"
-              className="pl-9"
-            />
-          </label>
-
-          <div className="min-h-0 flex-1 overflow-y-auto pr-1 customScrollBarStyle">
-            {!query.trim() ? (
-              <div className="grid grid-cols-2 gap-2">
+          {!hasSearchQuery ? (
+            <div className="mt-3 grid gap-2 laptop:grid-cols-[82px_minmax(0,1fr)] laptop:items-center">
+              <div className="text-xs font-black uppercase tracking-wide text-gray-500">Lessons</div>
+              <div className="flex min-w-0 gap-2 overflow-x-auto pb-1 customScrollBarStyle">
                 {lessons.map((lesson) => {
                   const idioms = getIdiomsForLesson(activeLevel, lesson.lesson_number);
                   const studiedInLesson = idioms.filter((idiom) => progress.studied[idiom.id]).length;
@@ -328,79 +332,90 @@ export default function Book({ searchParams }: BookPageProps): React.ReactElemen
                     <button
                       key={lesson.lesson_number}
                       type="button"
+                      aria-label={`Lesson ${lesson.lesson_number}, ${studiedInLesson} of ${idioms.length} studied`}
                       onClick={() => {
                         setActiveLesson(lesson.lesson_number);
                         setSelectedIdiomId("");
                       }}
-                      className={`rounded-lg border p-3 text-left transition ${
+                      className={`flex min-h-10 min-w-[74px] items-center justify-between gap-2 rounded-lg border px-2.5 text-left transition ${
                         activeLesson === lesson.lesson_number
                           ? "border-primaryColor bg-primaryColor/10 shadow-sm"
-                          : "border-gray-200 bg-white hover:border-primaryColor/40"
+                          : "border-gray-200 bg-white hover:border-primaryColor/40 hover:bg-gray-50"
                       }`}
                     >
-                      <div className="text-sm font-bold">Lesson {lesson.lesson_number}</div>
-                      <div className="mt-1 text-xs text-gray-500">
-                        {studiedInLesson}/{idioms.length} studied
-                      </div>
+                      <span className="text-sm font-black">{lesson.lesson_number}</span>
+                      <span className="text-[11px] font-semibold text-gray-500">
+                        {studiedInLesson}/{idioms.length}
+                      </span>
                     </button>
                   );
                 })}
               </div>
-            ) : (
-              <div className="text-xs text-gray-500">{searchResults.length} result(s) across all levels</div>
-            )}
-          </div>
-        </aside>
+            </div>
+          ) : (
+            <div className="mt-3 rounded-lg border border-dashed border-gray-200 bg-gray-50 px-3 py-2 text-xs font-semibold text-gray-500">
+              {searchResults.length} result(s) across all levels
+            </div>
+          )}
 
-        <section className="grid min-h-0 grid-cols-[minmax(260px,360px)_minmax(0,1fr)] gap-4 max-tablet:grid-cols-1 max-mobile:min-h-0">
-          <div className="min-h-0 overflow-y-auto rounded-lg border border-border bg-white p-3 shadow-sm customScrollBarStyle">
-            <div className="mb-3 flex items-center justify-between">
+          <div className="mt-3 grid gap-2 border-t border-gray-100 pt-3 laptop:grid-cols-[150px_minmax(0,1fr)] laptop:items-center">
+            <div className="flex flex-wrap items-center justify-between gap-2 laptop:block">
               <div>
-                <h2 className="text-lg font-bold">{query.trim() ? "Search Results" : `Lesson ${activeLesson}`}</h2>
-                <p className="text-xs text-gray-500">{visibleIdioms.length} idioms</p>
+                <h2 className="text-sm font-black">{hasSearchQuery ? "Matching idioms" : `Lesson ${activeLesson} idioms`}</h2>
+                <p className="text-xs font-semibold text-gray-500">
+                  {selectedIdiomPosition}/{visibleIdioms.length} selected
+                </p>
               </div>
             </div>
-            <div className="flex flex-col gap-2">
-              {visibleIdioms.map((idiom) => (
-                <button
-                  key={idiom.id}
-                  type="button"
-                  onClick={() => handleSelectIdiom(idiom)}
-                  className={`rounded-lg border p-3 text-left transition ${
-                    selectedIdiom?.id === idiom.id ? "border-primaryColor bg-primaryColor/10" : "border-gray-200 bg-white hover:border-primaryColor/40"
-                  }`}
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <span className="text-sm font-bold">{idiom.english_phrase}</span>
-                    <StatusBadge status={getStudyStatus(idiom.id, progress)} />
-                  </div>
-                  <div dir="rtl" className="mt-1 font-iranYekan text-xs leading-6 text-gray-500">
-                    {idiom.persian_phrase_meaning}
-                  </div>
-                  {hasSearchQuery ? (
-                    <div className="mt-2 text-[11px] font-bold uppercase tracking-wide text-primaryColor">
-                      {idiom.levelLabel} · Lesson {idiom.lessonNumber}
-                    </div>
-                  ) : null}
-                </button>
-              ))}
-            </div>
-          </div>
 
-          <article className="min-h-0 overflow-y-auto rounded-lg border border-border bg-white p-5 shadow-sm customScrollBarStyle">
-            {selectedIdiom ? (
-              <div className="flex flex-col gap-5">
-                <div className="flex items-start justify-between gap-4 max-mobile:flex-col">
-                  <div className="min-w-0">
-                    <div className="mb-2 text-xs font-bold uppercase tracking-wide text-primaryColor">
-                      {selectedIdiom.levelLabel} · Lesson {selectedIdiom.lessonNumber}
-                    </div>
-                    <h1 className="text-3xl font-black max-tablet:text-2xl">{selectedIdiom.english_phrase}</h1>
-                    <p dir="rtl" className="mt-2 font-iranYekan text-lg leading-8 text-gray-700">
-                      {selectedIdiom.persian_phrase_meaning}
-                    </p>
+            {visibleIdioms.length ? (
+              <div className="flex min-w-0 gap-2 overflow-x-auto pb-1 customScrollBarStyle">
+                {visibleIdioms.map((idiom) => (
+                  <button
+                    key={idiom.id}
+                    type="button"
+                    onClick={() => handleSelectIdiom(idiom)}
+                    className={`min-h-[62px] min-w-[195px] max-w-[235px] rounded-lg border px-3 py-2 text-left transition ${
+                      selectedIdiom?.id === idiom.id
+                        ? "border-primaryColor bg-primaryColor/10 shadow-sm"
+                        : "border-gray-200 bg-white hover:border-primaryColor/40 hover:bg-gray-50"
+                    }`}
+                  >
+                    <span className="flex items-start justify-between gap-3">
+                      <span className="min-w-0 truncate text-sm font-black">{idiom.english_phrase}</span>
+                      <StatusBadge status={getStudyStatus(idiom.id, progress)} />
+                    </span>
+                    <span dir="rtl" className="mt-1 block truncate font-iranYekan text-xs leading-6 text-gray-500">
+                      {idiom.persian_phrase_meaning}
+                    </span>
+                    {hasSearchQuery ? (
+                      <span className="mt-1 block text-[11px] font-bold uppercase tracking-wide text-primaryColor">
+                        {idiom.levelLabel} · Lesson {idiom.lessonNumber}
+                      </span>
+                    ) : null}
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-4 text-center text-sm font-semibold text-gray-500">
+                No idioms match this search.
+              </div>
+            )}
+          </div>
+        </section>
+
+        <article className="min-h-0 overflow-y-auto rounded-lg border border-border bg-white p-5 shadow-sm customScrollBarStyle">
+          {selectedIdiom ? (
+            <div className="flex flex-col gap-5">
+              <div className="flex items-start justify-between gap-6 max-mobile:flex-col">
+                <div className="min-w-0 flex-1">
+                  <div className="mb-2 text-xs font-bold uppercase tracking-wide text-primaryColor">
+                    {selectedIdiom.levelLabel} · Lesson {selectedIdiom.lessonNumber}
                   </div>
-                  <div className="flex shrink-0 items-center gap-2 max-mobile:grid max-mobile:w-full max-mobile:grid-cols-2">
+                  <h1 className="text-3xl font-black max-tablet:text-2xl">{selectedIdiom.english_phrase}</h1>
+                </div>
+                <div className="flex shrink-0 flex-col items-end gap-3 text-right max-mobile:w-full max-mobile:items-stretch">
+                  <div className="flex items-center justify-end gap-2 max-mobile:grid max-mobile:w-full max-mobile:grid-cols-2">
                     <div className="flex min-h-10 items-center justify-center rounded-lg border border-gray-200 bg-gray-50 px-3 max-mobile:min-h-12">
                       <StatusBadge status={selectedStatus} />
                     </div>
@@ -409,7 +424,11 @@ export default function Book({ searchParams }: BookPageProps): React.ReactElemen
                       {isBookmarked(selectedIdiom) ? "Saved" : "Save"}
                     </Button>
                   </div>
+                  <p dir="rtl" className="max-w-md font-iranYekan text-lg leading-8 text-gray-700 max-mobile:max-w-none max-mobile:text-right">
+                    {selectedIdiom.persian_phrase_meaning}
+                  </p>
                 </div>
+              </div>
 
                 <div className="grid grid-cols-2 gap-3 max-tablet:grid-cols-1">
                   <InfoBlock title="English Definition" text={selectedIdiom.english_definition} />
@@ -577,8 +596,7 @@ export default function Book({ searchParams }: BookPageProps): React.ReactElemen
             ) : (
               <div className="flex h-full items-center justify-center text-sm text-gray-500">No idioms match this search.</div>
             )}
-          </article>
-        </section>
+        </article>
       </section>
     </main>
   );
