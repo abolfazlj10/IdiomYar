@@ -4,6 +4,9 @@ import type { IdiomEntry } from "@/lib/idioms";
 const PROGRESS_KEY = "idioms:v1:progress";
 const BOOKMARKS_KEY = "idioms:v1:bookmarks";
 const STORIES_KEY = "idioms:v1:stories";
+const PERSONAL_EXAMPLES_KEY = "idioms:v1:personal-examples";
+
+export type RecallStatus = "known" | "learning" | "review";
 
 export type StudyProgress = {
   studied: Record<string, string>;
@@ -28,6 +31,14 @@ export type SavedStory = {
   storyEn: string;
   createdAt: string;
 };
+
+export type PersonalExamples = Record<
+  string,
+  {
+    text: string;
+    updatedAt: string;
+  }
+>;
 
 const EMPTY_PROGRESS: StudyProgress = {
   studied: {},
@@ -105,19 +116,27 @@ export function markStudied(id: string, studied = true): StudyProgress {
 }
 
 export function markCard(id: string, status: "known" | "review"): StudyProgress {
+  return markRecallStatus(id, status);
+}
+
+export function markRecallStatus(id: string, status: RecallStatus): StudyProgress {
   return updateProgress((progress) => {
+    const timestamp = now();
     const next = {
-      studied: { ...progress.studied, [id]: now() },
+      studied: { ...progress.studied, [id]: timestamp },
       known: { ...progress.known },
       review: { ...progress.review },
     };
 
     if (status === "known") {
-      next.known[id] = now();
+      next.known[id] = timestamp;
       delete next.review[id];
-    } else {
-      next.review[id] = now();
+    } else if (status === "review") {
+      next.review[id] = timestamp;
       delete next.known[id];
+    } else {
+      delete next.known[id];
+      delete next.review[id];
     }
 
     return next;
@@ -181,5 +200,35 @@ export function addStory(story: Omit<SavedStory, "id" | "createdAt">): SavedStor
 export function removeStory(id: string): SavedStory[] {
   const next = getStories().filter((item) => item.id !== id);
   saveStories(next);
+  return next;
+}
+
+export function getPersonalExamples(): PersonalExamples {
+  return readJson<PersonalExamples>(PERSONAL_EXAMPLES_KEY, {});
+}
+
+export function savePersonalExample(id: string, text: string): PersonalExamples {
+  const examples = getPersonalExamples();
+  const trimmedText = text.trim();
+  const next = { ...examples };
+
+  if (trimmedText) {
+    next[id] = {
+      text: trimmedText,
+      updatedAt: now(),
+    };
+  } else {
+    delete next[id];
+  }
+
+  writeJson(PERSONAL_EXAMPLES_KEY, next);
+  return next;
+}
+
+export function removePersonalExample(id: string): PersonalExamples {
+  const examples = getPersonalExamples();
+  const next = { ...examples };
+  delete next[id];
+  writeJson(PERSONAL_EXAMPLES_KEY, next);
   return next;
 }

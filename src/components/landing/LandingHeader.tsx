@@ -11,6 +11,7 @@ type LandingHeaderProps = {
   githubRepoUrl: string;
   githubProfileUrl: string;
   githubAvatarUrl: string;
+  searchSlot?: React.ReactNode;
 };
 
 export function LandingHeader({
@@ -18,6 +19,7 @@ export function LandingHeader({
   githubRepoUrl,
   githubProfileUrl,
   githubAvatarUrl,
+  searchSlot,
 }: LandingHeaderProps): React.ReactElement {
   return (
     <header className="sticky top-3 z-50 flex min-w-0 flex-wrap items-center justify-between gap-3 rounded-lg border border-[#E7E0D5] bg-[#FBFAF7]/90 px-3 py-3 shadow-[0_14px_40px_rgba(11,16,32,0.08)] backdrop-blur-xl tablet:px-4">
@@ -31,7 +33,9 @@ export function LandingHeader({
         </span>
       </Link>
 
-      <nav aria-label="Primary navigation" className="order-3 flex w-full min-w-0 items-center gap-1 overflow-x-auto tablet:order-none tablet:w-auto tablet:overflow-visible">
+      {searchSlot ? <div className="order-3 w-full min-w-0 tablet:order-none tablet:flex-1 tablet:basis-72 laptop:max-w-lg">{searchSlot}</div> : null}
+
+      <nav aria-label="Primary navigation" className="order-4 flex w-full min-w-0 items-center gap-1 overflow-x-auto tablet:order-none tablet:w-auto tablet:overflow-visible">
         {navItems.map((item) => (
           <Link
             key={item.href}

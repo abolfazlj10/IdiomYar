@@ -6,6 +6,7 @@ import Appbar from "@/components/appbar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
+  findIdiomById,
   getAllIdioms,
   getIdiomsForLesson,
   getLessons,
@@ -28,10 +29,17 @@ const DEFAULT_LEVEL: LevelId = "elementary";
 export type StudySearchParams = {
   level?: string | string[];
   lesson?: string | string[];
+  idiom?: string | string[];
 };
 
 type BookPageProps = {
   searchParams?: StudySearchParams;
+};
+
+type RequestedStudyPosition = {
+  level: LevelId;
+  lesson: number;
+  idiomId?: string;
 };
 
 function getParam(value: string | string[] | undefined): string | null {
@@ -56,7 +64,35 @@ function parseLessonParam(level: LevelId, value: string | null): number | null {
   return getLessons(level).some((lesson) => lesson.lesson_number === lessonNumber) ? lessonNumber : null;
 }
 
-function getRequestedStudyPosition(searchParams?: StudySearchParams): { level: LevelId; lesson: number } | null {
+function findRequestedIdiom(value: string | null): IdiomEntry | undefined {
+  if (!value) {
+    return undefined;
+  }
+
+  const directMatch = findIdiomById(value);
+
+  if (directMatch) {
+    return directMatch;
+  }
+
+  try {
+    return findIdiomById(decodeURIComponent(value));
+  } catch {
+    return undefined;
+  }
+}
+
+function getRequestedStudyPosition(searchParams?: StudySearchParams): RequestedStudyPosition | null {
+  const requestedIdiom = findRequestedIdiom(getParam(searchParams?.idiom));
+
+  if (requestedIdiom) {
+    return {
+      level: requestedIdiom.level,
+      lesson: requestedIdiom.lessonNumber,
+      idiomId: requestedIdiom.id,
+    };
+  }
+
   const level = parseLevelParam(getParam(searchParams?.level));
 
   if (!level) {
@@ -72,23 +108,30 @@ function getRequestedStudyPosition(searchParams?: StudySearchParams): { level: L
 export default function Book({ searchParams }: BookPageProps): React.ReactElement {
   const requestedLevelParam = getParam(searchParams?.level);
   const requestedLessonParam = getParam(searchParams?.lesson);
+  const requestedIdiomParam = getParam(searchParams?.idiom);
   const requestedPosition = useMemo(
-    () => getRequestedStudyPosition({ level: requestedLevelParam ?? undefined, lesson: requestedLessonParam ?? undefined }),
-    [requestedLevelParam, requestedLessonParam]
+    () =>
+      getRequestedStudyPosition({
+        level: requestedLevelParam ?? undefined,
+        lesson: requestedLessonParam ?? undefined,
+        idiom: requestedIdiomParam ?? undefined,
+      }),
+    [requestedLevelParam, requestedLessonParam, requestedIdiomParam]
   );
   const [activeLevel, setActiveLevel] = useState<LevelId>(requestedPosition?.level ?? DEFAULT_LEVEL);
   const [activeLesson, setActiveLesson] = useState<number>(
     requestedPosition?.lesson ?? getFirstLessonNumber(requestedPosition?.level ?? DEFAULT_LEVEL)
   );
-  const [selectedIdiomId, setSelectedIdiomId] = useState<string>("");
+  const [selectedIdiomId, setSelectedIdiomId] = useState<string>(requestedPosition?.idiomId ?? "");
   const [query, setQuery] = useState("");
   const [progress, setProgress] = useState<StudyProgress>({ studied: {}, known: {}, review: {} });
   const [bookmarks, setBookmarks] = useState<StoredBookmark[]>([]);
 
+  const hasSearchQuery = Boolean(query.trim());
   const lessons = useMemo(() => getLessons(activeLevel), [activeLevel]);
   const lessonIdioms = useMemo(() => getIdiomsForLesson(activeLevel, activeLesson), [activeLevel, activeLesson]);
-  const searchResults = useMemo(() => getAllIdioms(activeLevel).filter((idiom) => idiomMatchesSearch(idiom, query)), [activeLevel, query]);
-  const visibleIdioms = query.trim() ? searchResults : lessonIdioms;
+  const searchResults = useMemo(() => (hasSearchQuery ? getAllIdioms().filter((idiom) => idiomMatchesSearch(idiom, query)) : []), [hasSearchQuery, query]);
+  const visibleIdioms = hasSearchQuery ? searchResults : lessonIdioms;
   const selectedIdiom = visibleIdioms.find((idiom) => idiom.id === selectedIdiomId) ?? visibleIdioms[0];
   const studiedCount = getAllIdioms(activeLevel).filter((idiom) => progress.studied[idiom.id]).length;
   const totalCount = getAllIdioms(activeLevel).length;
@@ -99,21 +142,13 @@ export default function Book({ searchParams }: BookPageProps): React.ReactElemen
   }, []);
 
   useEffect(() => {
-    const firstLesson = getFirstLessonNumber(activeLevel);
-
-    setActiveLesson(requestedPosition?.level === activeLevel ? requestedPosition.lesson : firstLesson);
-    setSelectedIdiomId("");
-    setQuery("");
-  }, [activeLevel]);
-
-  useEffect(() => {
     if (!requestedPosition) {
       return;
     }
 
     setActiveLevel(requestedPosition.level);
     setActiveLesson(requestedPosition.lesson);
-    setSelectedIdiomId("");
+    setSelectedIdiomId(requestedPosition.idiomId ?? "");
     setQuery("");
   }, [requestedPosition]);
 
@@ -124,6 +159,14 @@ export default function Book({ searchParams }: BookPageProps): React.ReactElemen
   }, [selectedIdiomId, visibleIdioms]);
 
   const isBookmarked = (idiom: IdiomEntry): boolean => bookmarks.some((item) => item.id === idiom.id);
+  const handleSelectIdiom = (idiom: IdiomEntry): void => {
+    setSelectedIdiomId(idiom.id);
+
+    if (hasSearchQuery) {
+      setActiveLevel(idiom.level);
+      setActiveLesson(idiom.lessonNumber);
+    }
+  };
 
   return (
     <main className="flex min-h-[calc(100dvh-2rem)] min-w-0 flex-col gap-4 overflow-hidden pb-4 pt-2 max-mobile:min-h-dvh max-mobile:overflow-visible">
@@ -136,7 +179,12 @@ export default function Book({ searchParams }: BookPageProps): React.ReactElemen
               <button
                 key={level.id}
                 type="button"
-                onClick={() => setActiveLevel(level.id)}
+                onClick={() => {
+                  setActiveLevel(level.id);
+                  setActiveLesson(getFirstLessonNumber(level.id));
+                  setSelectedIdiomId("");
+                  setQuery("");
+                }}
                 className={`rounded-lg border px-2 py-2 text-xs font-bold transition ${
                   activeLevel === level.id ? level.softAccent : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
                 }`}
@@ -197,7 +245,7 @@ export default function Book({ searchParams }: BookPageProps): React.ReactElemen
                 })}
               </div>
             ) : (
-              <div className="text-xs text-gray-500">{searchResults.length} result(s) in {LEVELS.find((level) => level.id === activeLevel)?.label}</div>
+              <div className="text-xs text-gray-500">{searchResults.length} result(s) across all levels</div>
             )}
           </div>
         </aside>
@@ -215,7 +263,7 @@ export default function Book({ searchParams }: BookPageProps): React.ReactElemen
                 <button
                   key={idiom.id}
                   type="button"
-                  onClick={() => setSelectedIdiomId(idiom.id)}
+                  onClick={() => handleSelectIdiom(idiom)}
                   className={`rounded-lg border p-3 text-left transition ${
                     selectedIdiom?.id === idiom.id ? "border-primaryColor bg-primaryColor/10" : "border-gray-200 bg-white hover:border-primaryColor/40"
                   }`}
@@ -225,6 +273,11 @@ export default function Book({ searchParams }: BookPageProps): React.ReactElemen
                     {progress.studied[idiom.id] ? <CheckCircle2 className="size-4 shrink-0 text-green-600" /> : null}
                   </div>
                   <div className="mt-1 text-xs text-gray-500">{idiom.persian_phrase_meaning}</div>
+                  {hasSearchQuery ? (
+                    <div className="mt-2 text-[11px] font-bold uppercase tracking-wide text-primaryColor">
+                      {idiom.levelLabel} · Lesson {idiom.lessonNumber}
+                    </div>
+                  ) : null}
                 </button>
               ))}
             </div>
