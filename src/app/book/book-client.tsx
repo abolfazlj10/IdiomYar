@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Bookmark, BookmarkCheck, CheckCircle2, Eye, EyeOff, MessageCircle, RotateCcw, Search, Star } from "lucide-react";
+import { ArrowLeft, ArrowRight, Bookmark, BookmarkCheck, CheckCircle2, Eye, EyeOff, RotateCcw, Search, Star } from "lucide-react";
 import Appbar from "@/components/appbar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -195,7 +195,7 @@ export default function Book({ searchParams }: BookPageProps): React.ReactElemen
       : studyFocus.examplesVisible
         ? `${selectedExamplesLabel}; Persian translations hidden`
         : studyFocus.translationsVisibleByDefault
-          ? "English examples hidden; Persian translations visible"
+          ? ""
           : "English examples and Persian translations hidden";
   const isDefaultStudyFocus =
     studyFocus.examplesVisible && studyFocus.translationsVisibleByDefault && !Object.keys(studyFocus.revealedTranslations).length;
@@ -283,6 +283,16 @@ export default function Book({ searchParams }: BookPageProps): React.ReactElemen
 
     setPersonalSentence("");
     setPersonalExamples(removePersonalExample(selectedIdiom.id));
+  };
+  const handlePreviousIdiom = (): void => {
+    if (selectedIdiomIndex > 0) {
+      setSelectedIdiomId(visibleIdioms[selectedIdiomIndex - 1].id);
+    }
+  };
+  const handleNextIdiom = (): void => {
+    if (selectedIdiomIndex < visibleIdioms.length - 1) {
+      setSelectedIdiomId(visibleIdioms[selectedIdiomIndex + 1].id);
+    }
   };
 
   return (
@@ -400,11 +410,6 @@ export default function Book({ searchParams }: BookPageProps): React.ReactElemen
                     <span dir="rtl" className="mt-1 block truncate font-iranYekan text-xs leading-6 text-gray-500">
                       {idiom.persian_phrase_meaning}
                     </span>
-                    {hasSearchQuery ? (
-                      <span className="mt-1 block text-[11px] font-bold uppercase tracking-wide text-primaryColor">
-                        {idiom.levelLabel} · Lesson {idiom.lessonNumber}
-                      </span>
-                    ) : null}
                   </button>
                 ))}
               </div>
@@ -421,26 +426,53 @@ export default function Book({ searchParams }: BookPageProps): React.ReactElemen
             <div className="flex flex-col gap-5">
               <div className="flex items-start justify-between gap-6 max-mobile:flex-col">
                 <div className="min-w-0 flex-1">
-                  <div className="mb-2 text-xs font-bold uppercase tracking-wide text-primaryColor">
-                    {selectedIdiom.levelLabel} · Lesson {selectedIdiom.lessonNumber}
+
+                  <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+                    <h1 className="text-3xl font-black max-tablet:text-2xl">{selectedIdiom.english_phrase}</h1>
+                    <p dir="rtl" className="font-iranYekan text-lg leading-8 text-gray-700">
+                      {selectedIdiom.persian_phrase_meaning}
+                    </p>
                   </div>
-                  <h1 className="text-3xl font-black max-tablet:text-2xl">{selectedIdiom.english_phrase}</h1>
                 </div>
-                <div className="flex shrink-0 flex-col items-end gap-3 text-right max-mobile:w-full max-mobile:items-stretch">
-                  <div className="flex items-center justify-end gap-2 max-mobile:grid max-mobile:w-full max-mobile:grid-cols-2">
-                    <div className="flex min-h-10 items-center justify-center rounded-lg border border-gray-200 bg-gray-50 px-3 max-mobile:min-h-12">
-                      <StatusBadge status={selectedStatus} />
-                    </div>
-                    <Button type="button" variant="outline" className="max-mobile:w-full" onClick={() => setBookmarks(toggleBookmark(selectedIdiom))}>
-                      {isBookmarked(selectedIdiom) ? <BookmarkCheck className="size-4" /> : <Bookmark className="size-4" />}
-                      {isBookmarked(selectedIdiom) ? "Saved" : "Save"}
-                    </Button>
+                <div className="flex shrink-0 items-center gap-2 max-mobile:w-full max-mobile:justify-stretch">
+                  <div className="flex min-h-10 items-center justify-center rounded-lg border border-gray-200 bg-gray-50 px-3 max-mobile:min-h-12">
+                    <StatusBadge status={selectedStatus} />
                   </div>
-                  <p dir="rtl" className="max-w-md font-iranYekan text-lg leading-8 text-gray-700 max-mobile:max-w-none max-mobile:text-right">
-                    {selectedIdiom.persian_phrase_meaning}
-                  </p>
+                  <Button type="button" variant="outline" className="max-mobile:flex-1" onClick={() => setBookmarks(toggleBookmark(selectedIdiom))}>
+                    {isBookmarked(selectedIdiom) ? <BookmarkCheck className="size-4" /> : <Bookmark className="size-4" />}
+                    {isBookmarked(selectedIdiom) ? "Saved" : "Save"}
+                  </Button>
                 </div>
               </div>
+
+                <div className="flex items-center justify-center gap-3">
+                  <span className="text-xs font-bold text-gray-500">
+                    {selectedIdiomPosition} / {visibleIdioms.length}
+                  </span>
+                </div>
+
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={handlePreviousIdiom}
+                  disabled={selectedIdiomIndex <= 0}
+                  className="fixed left-4 top-1/2 -translate-y-1/2 z-50 px-2"
+                >
+                  <ArrowLeft className="size-4" />
+                  <span>Previous</span>
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={handleNextIdiom}
+                  disabled={selectedIdiomIndex >= visibleIdioms.length - 1}
+                  className="fixed right-4 top-1/2 -translate-y-1/2 z-50 px-2"
+                >
+                  <span>Next</span>
+                  <ArrowRight className="size-4" />
+                </Button>
 
                 <div className="grid grid-cols-2 gap-3 max-tablet:grid-cols-1">
                   <InfoBlock title="English Definition" text={selectedIdiom.english_definition} />
@@ -571,33 +603,6 @@ export default function Book({ searchParams }: BookPageProps): React.ReactElemen
                   </div>
                 </section>
 
-                <section className="rounded-lg border border-gray-200 bg-gray-50 p-4">
-                  <div className="mb-3 flex items-center gap-2">
-                    <MessageCircle className="size-4 text-primaryColor" />
-                    <h2 className="text-lg font-bold">My sentence</h2>
-                  </div>
-                  <textarea
-                    value={personalSentence}
-                    dir="ltr"
-                    rows={3}
-                    onChange={(event) => setPersonalSentence(event.target.value)}
-                    placeholder="Write one sentence with this idiom."
-                    className="min-h-24 w-full resize-y rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm leading-6 text-gray-900 shadow-sm outline-none transition focus:border-primaryColor/50 focus:ring-3 focus:ring-primaryColor/20"
-                  />
-                  <div className="mt-3 flex flex-wrap justify-end gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      disabled={!personalSentence && !savedPersonalSentence}
-                      onClick={handleClearPersonalSentence}
-                    >
-                      Clear
-                    </Button>
-                    <Button type="button" disabled={!personalSentence.trim() || !personalSentenceChanged} onClick={handleSavePersonalSentence}>
-                      Save sentence
-                    </Button>
-                  </div>
-                </section>
               </div>
             ) : (
               <div className="flex h-full items-center justify-center text-sm text-gray-500">No idioms match this search.</div>

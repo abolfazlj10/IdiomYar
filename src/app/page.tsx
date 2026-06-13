@@ -1,10 +1,7 @@
-import { LandingHeader } from "@/components/landing/LandingHeader";
+import { Archive, BookOpen, Layers, Library } from "lucide-react";
+import Link from "next/link";
 import { HomeIdiomSearch, type HomeIdiomSearchItem } from "@/components/landing/HomeIdiomSearch";
 import { getAllIdioms } from "@/lib/idioms";
-
-const githubProfileUrl = "https://github.com/abolfazlj10";
-const githubRepoUrl = "https://github.com/abolfazlj10/essential-idioms-in-english";
-const githubAvatarUrl = `${githubProfileUrl}.png?size=96`;
 
 const allIdioms = getAllIdioms();
 const homeSearchItems = allIdioms.map((idiom) => ({
@@ -31,21 +28,38 @@ const homeSearchItems = allIdioms.map((idiom) => ({
     .toLowerCase(),
 })) satisfies HomeIdiomSearchItem[];
 
-const navItems = [
-  { href: "/cards", label: "Cards" },
-  { href: "/book", label: "Lessons" },
-  { href: "/story", label: "Stories" },
-  { href: "/archive", label: "Review" },
+const tools = [
+  { href: "/cards", label: "Flash Cards", icon: Layers, description: "Study with interactive cards" },
+  { href: "/book", label: "Lessons", icon: Library, description: "Browse all idioms by lesson" },
+  { href: "/story", label: "Stories", icon: BookOpen, description: "Read idioms in context" },
+  { href: "/archive", label: "Review", icon: Archive, description: "Review your saved idioms" },
 ];
 
 export default function Home(): React.ReactElement {
   return (
-    <LandingHeader
-      navItems={navItems}
-      githubRepoUrl={githubRepoUrl}
-      githubProfileUrl={githubProfileUrl}
-      githubAvatarUrl={githubAvatarUrl}
-      searchSlot={<HomeIdiomSearch items={homeSearchItems} variant="navbar" />}
-    />
+    <div className="flex flex-1 flex-col items-center justify-center gap-14 pb-20 pt-8">
+      <div className="text-center">
+        <h1 className="text-4xl font-black tracking-tight max-mobile:text-3xl">IdiomYar</h1>
+        <p className="mt-2 text-sm font-semibold text-gray-500">Idioms that stay with you</p>
+      </div>
+
+      <div className="w-full max-w-2xl">
+        <HomeIdiomSearch items={homeSearchItems} />
+      </div>
+
+      <div className="grid w-full max-w-2xl grid-cols-2 gap-3 mobile:gap-4">
+        {tools.map((tool) => (
+          <Link
+            key={tool.href}
+            href={tool.href}
+            className="flex flex-col items-center gap-3 rounded-xl border border-gray-200 bg-white p-6 text-center shadow-sm transition-all duration-150 hover:-translate-y-1 hover:border-primaryColor/40 hover:shadow-md"
+          >
+            <tool.icon className="size-7 text-primaryColor" aria-hidden="true" />
+            <span className="text-sm font-black">{tool.label}</span>
+            <span className="text-xs font-semibold text-gray-500">{tool.description}</span>
+          </Link>
+        ))}
+      </div>
+    </div>
   );
 }
