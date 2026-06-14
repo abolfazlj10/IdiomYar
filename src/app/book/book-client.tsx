@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, ArrowRight, Bookmark, BookmarkCheck, CheckCircle2, Eye, EyeOff, RotateCcw, Search, Star } from "lucide-react";
+import { ArrowLeft, ArrowRight, Bookmark, BookmarkCheck, Eye, EyeOff, RotateCcw, Search } from "lucide-react";
 import Appbar from "@/components/appbar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,7 +18,6 @@ import {
   getBookmarks,
   getPersonalExamples,
   getProgress,
-  markRecallStatus,
   removePersonalExample,
   savePersonalExample,
   toggleBookmark,
@@ -262,13 +261,7 @@ export default function Book({ searchParams }: BookPageProps): React.ReactElemen
       },
     }));
   };
-  const handleRecallStatus = (status: RecallStatus): void => {
-    if (!selectedIdiom) {
-      return;
-    }
 
-    setProgress(markRecallStatus(selectedIdiom.id, status));
-  };
   const handleSavePersonalSentence = (): void => {
     if (!selectedIdiom) {
       return;
@@ -564,44 +557,7 @@ export default function Book({ searchParams }: BookPageProps): React.ReactElemen
                   )}
                 </div>
 
-                <section className="rounded-lg border border-gray-200 bg-gray-50 p-4">
-                  <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                      <h2 className="text-lg font-bold">Recall check</h2>
-                      <p className="mt-1 text-xs font-semibold text-gray-500">Mark how this idiom feels after studying.</p>
-                    </div>
-                    <StatusBadge status={selectedStatus} />
-                  </div>
-                  <div className="grid grid-cols-3 gap-2 max-mobile:grid-cols-1">
-                    <Button
-                      type="button"
-                      variant={selectedStatus === "known" ? "success" : "outline"}
-                      aria-pressed={selectedStatus === "known"}
-                      onClick={() => handleRecallStatus("known")}
-                    >
-                      <CheckCircle2 className="size-4" />
-                      Got it
-                    </Button>
-                    <Button
-                      type="button"
-                      variant={selectedStatus === "learning" ? "secondary" : "outline"}
-                      aria-pressed={selectedStatus === "learning"}
-                      onClick={() => handleRecallStatus("learning")}
-                    >
-                      <RotateCcw className="size-4" />
-                      Still learning
-                    </Button>
-                    <Button
-                      type="button"
-                      variant={selectedStatus === "review" ? "review" : "outline"}
-                      aria-pressed={selectedStatus === "review"}
-                      onClick={() => handleRecallStatus("review")}
-                    >
-                      <Star className="size-4" />
-                      Needs review
-                    </Button>
-                  </div>
-                </section>
+
 
               </div>
             ) : (
