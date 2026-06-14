@@ -13,7 +13,7 @@ type StoryResponse = {
   error?: string;
 };
 
-export function useGeminiStory() {
+export function useStoryGenerator() {
   return useMutation<StoryResponse, Error, InputTypes>({
     mutationFn: async (variables) => {
       const response = await fetch("/api/story", {

@@ -178,9 +178,6 @@ function IdiomRow({ idiom, active, onClick }: { idiom: IdiomEntry; active: boole
         <Bookmark className="mt-0.5 size-4 shrink-0 text-primaryColor" />
         <div>
           <div className="text-sm font-bold">{idiom.english_phrase}</div>
-          <div className="mt-1 text-xs text-gray-500">
-            {level.label} · Lesson {idiom.lessonNumber}
-          </div>
         </div>
       </div>
     </button>
@@ -238,9 +235,7 @@ function IdiomDetail({
     <article className="flex flex-col gap-5">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <div className="mb-2 text-xs font-bold uppercase tracking-wide text-primaryColor">
-            {idiom.levelLabel} · Lesson {idiom.lessonNumber}
-          </div>
+
           <h1 className="text-3xl font-black max-tablet:text-2xl">{idiom.english_phrase}</h1>
           <p dir="rtl" className="mt-2 font-iranYekan text-lg text-gray-700">
             {idiom.persian_phrase_meaning}
