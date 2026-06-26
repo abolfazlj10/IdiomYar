@@ -3,6 +3,11 @@ import Link from "next/link";
 import { HomeIdiomSearch, type HomeIdiomSearchItem } from "@/components/landing/HomeIdiomSearch";
 import { getAllIdioms } from "@/lib/idioms";
 
+const githubAccount = {
+  name: "Abolfazl",
+  profileUrl: "https://github.com/abolfazlj10",
+};
+
 const allIdioms = getAllIdioms();
 const homeSearchItems = allIdioms.map((idiom) => ({
   id: idiom.id,
@@ -60,6 +65,16 @@ export default function Home(): React.ReactElement {
           </Link>
         ))}
       </div>
+
+      <a
+        href={githubAccount.profileUrl}
+        target="_blank"
+        rel="noreferrer"
+        className="fixed bottom-4 left-4 z-40 text-xs font-bold text-gray-500 transition-colors duration-150 hover:text-gray-950 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-primaryColor/25"
+        aria-label={`Open ${githubAccount.name}'s GitHub profile`}
+      >
+        Made by {githubAccount.name}
+      </a>
     </div>
   );
 }

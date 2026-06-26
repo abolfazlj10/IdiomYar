@@ -161,15 +161,15 @@ export function HomeIdiomSearch({ items, variant = "hero" }: HomeIdiomSearchProp
     <div ref={rootRef} className="relative w-full">
       <div
         className={cn(
-          "flex w-full items-center gap-3 rounded-lg border border-[#D8D1C6] bg-white text-left transition-[border-color,box-shadow,transform] duration-150 focus-within:border-[#5B2EFF]/45 focus-within:ring-3 focus-within:ring-[#5B2EFF]/20 hover:-translate-y-0.5 hover:border-[#5B2EFF]/40",
+          "group/search flex w-full items-center gap-3 rounded-lg border border-[#D8D1C6] bg-white text-left transition-[border-color,box-shadow] duration-[220ms] ease-out focus-within:border-[#5B2EFF]/45 focus-within:ring-3 focus-within:ring-[#5B2EFF]/20 hover:border-[#5B2EFF]/40",
           variant === "navbar"
-            ? "min-h-10 px-3 py-2 shadow-sm hover:shadow-[0_10px_24px_rgba(11,16,32,0.1)]"
-            : "mt-7 min-h-14 max-w-2xl px-4 py-3 shadow-[0_14px_34px_rgba(11,16,32,0.08)] hover:shadow-[0_18px_42px_rgba(11,16,32,0.11)]"
+            ? "min-h-10 px-3 py-2 shadow-sm hover:shadow-[0_12px_28px_rgba(11,16,32,0.11)] focus-within:shadow-[0_12px_28px_rgba(11,16,32,0.11)]"
+            : "mt-7 min-h-14 max-w-2xl px-4 py-3 shadow-[0_14px_34px_rgba(11,16,32,0.08)] hover:shadow-[0_20px_46px_rgba(11,16,32,0.12)] focus-within:shadow-[0_20px_46px_rgba(11,16,32,0.12)]"
         )}
       >
         <span
           className={cn(
-            "flex shrink-0 items-center justify-center rounded-lg bg-[#F4F1FF] text-[#5B2EFF]",
+            "flex shrink-0 items-center justify-center rounded-lg bg-[#F4F1FF] text-[#5B2EFF] transition-transform duration-[220ms] ease-out group-hover/search:scale-105 group-focus-within/search:scale-105",
             variant === "navbar" ? "size-8" : "size-9"
           )}
         >
@@ -190,7 +190,7 @@ export function HomeIdiomSearch({ items, variant = "hero" }: HomeIdiomSearchProp
             placeholder="Search any idiom"
             autoComplete="off"
             className={cn(
-              "block h-7 w-full min-w-0 bg-transparent font-black text-[#0B1020] outline-none placeholder:text-[#0B1020]",
+              "block h-7 w-full min-w-0 bg-transparent font-semibold text-[#0B1020] outline-none placeholder:font-medium placeholder:text-[#0B1020]",
               variant === "navbar" ? "text-sm" : "text-sm mobile:text-base"
             )}
             aria-label="Search idioms or meanings"
@@ -198,9 +198,6 @@ export function HomeIdiomSearch({ items, variant = "hero" }: HomeIdiomSearchProp
             aria-controls="home-idiom-search-results"
             role="combobox"
           />
-          <span className={cn("truncate text-xs font-semibold text-[#6C7280]", variant === "navbar" ? "hidden laptop:block" : "block mobile:text-sm")}>
-            Find phrases and meanings
-          </span>
         </label>
         {hasQuery ? (
           <button
@@ -212,21 +209,22 @@ export function HomeIdiomSearch({ items, variant = "hero" }: HomeIdiomSearchProp
             <X className="size-4" aria-hidden="true" />
           </button>
         ) : (
-          <span className="hidden shrink-0 items-center gap-1 rounded-lg border border-[#E4DDD2] bg-[#FBFAF7] px-2.5 py-1.5 text-xs font-black text-[#4E5668] mobile:inline-flex">
+          <span className="hidden shrink-0 items-center gap-1 rounded-lg border border-[#E4DDD2] bg-[#FBFAF7] px-2.5 py-1.5 text-xs font-black text-[#4E5668] shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] transition-[background-color,border-color,color,box-shadow] duration-[220ms] ease-out group-hover/search:border-[#5B2EFF]/25 group-hover/search:bg-[#F4F1FF] group-hover/search:text-[#5B2EFF] group-hover/search:shadow-[0_8px_18px_rgba(91,46,255,0.12)] group-focus-within/search:border-[#5B2EFF]/25 group-focus-within/search:bg-[#F4F1FF] group-focus-within/search:text-[#5B2EFF] group-focus-within/search:shadow-[0_8px_18px_rgba(91,46,255,0.12)] mobile:inline-flex">
             <Command className="size-3.5" aria-hidden="true" />
             K
           </span>
         )}
       </div>
 
-      {isExpanded ? (
-        <div
-          id="home-idiom-search-results"
-          className={cn(
-            "absolute left-0 right-0 z-50 mt-2 flex max-h-[min(540px,calc(100dvh-8rem))] flex-col overflow-hidden rounded-lg border border-[#E4DDD2] bg-[#FBFAF7] shadow-[0_24px_70px_rgba(11,16,32,0.18)]",
-            variant === "hero" && "max-w-2xl"
-          )}
-        >
+      <div
+        id="home-idiom-search-results"
+        aria-hidden={!isExpanded}
+        className={cn(
+          "absolute left-0 right-0 z-50 mt-2 flex max-h-[min(540px,calc(100dvh-8rem))] origin-top flex-col overflow-hidden rounded-lg border border-[#E4DDD2] bg-[#FBFAF7] shadow-[0_24px_70px_rgba(11,16,32,0.18)] transition-[opacity,transform,visibility] duration-200 ease-out",
+          isExpanded ? "visible translate-y-0 scale-100 opacity-100" : "invisible pointer-events-none -translate-y-1 scale-[0.985] opacity-0",
+          variant === "hero" && "max-w-2xl"
+        )}
+      >
           <div className="min-h-0 flex-1 overflow-y-auto p-3 customScrollBarStyle">
             {results.length ? (
               <div className="flex flex-col gap-2" role="listbox" aria-label="Idiom search results">
@@ -246,7 +244,7 @@ export function HomeIdiomSearch({ items, variant = "hero" }: HomeIdiomSearchProp
                     )}
                   >
                     <span className="grid min-w-0 grid-cols-[minmax(0,1fr)_minmax(0,1fr)] items-center gap-3">
-                      <span className="truncate text-sm font-black text-[#0B1020] mobile:text-base">{item.englishPhrase}</span>
+                      <span className="truncate text-sm font-semibold text-[#0B1020] mobile:text-base">{item.englishPhrase}</span>
                       <span dir="rtl" className="truncate text-right font-iranYekan text-sm leading-6 text-[#4E5668]">
                         {item.persianPhrase || "No Persian meaning yet."}
                       </span>
@@ -265,7 +263,7 @@ export function HomeIdiomSearch({ items, variant = "hero" }: HomeIdiomSearchProp
               </div>
             ) : (
               <div className="flex min-h-40 flex-col items-center justify-center rounded-lg border border-dashed border-[#D8D1C6] bg-white/70 px-4 text-center">
-                <p className="text-sm font-black text-[#0B1020]">No idioms found</p>
+                <p className="text-sm font-semibold text-[#0B1020]">No idioms found</p>
                 <p className="mt-2 max-w-sm text-sm leading-6 text-[#6C7280]">Try a phrase or Persian meaning.</p>
               </div>
             )}
@@ -278,8 +276,7 @@ export function HomeIdiomSearch({ items, variant = "hero" }: HomeIdiomSearchProp
             </span>
             <span>Use arrows to move through results</span>
           </div>
-        </div>
-      ) : null}
+      </div>
     </div>
   );
 }
