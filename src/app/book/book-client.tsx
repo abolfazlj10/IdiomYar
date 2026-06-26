@@ -859,7 +859,7 @@ function DetailRow({ title, text, dir }: { title: string; text: string; dir: "lt
         dir={dir}
         className={cn(
           "text-[13px] text-gray-800",
-          dir === "rtl" ? "font-iranYekan text-right leading-7" : "leading-6"
+          dir === "rtl" ? "font-iranYekan text-right leading-7" : "text-right leading-6"
         )}
       >
         {text}
