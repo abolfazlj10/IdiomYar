@@ -193,13 +193,13 @@ export function HomeIdiomSearch({ items, variant = "hero" }: HomeIdiomSearchProp
               "block h-7 w-full min-w-0 bg-transparent font-black text-[#0B1020] outline-none placeholder:text-[#0B1020]",
               variant === "navbar" ? "text-sm" : "text-sm mobile:text-base"
             )}
-            aria-label="Search idioms, meanings, or lessons"
+            aria-label="Search idioms or meanings"
             aria-expanded={isExpanded}
             aria-controls="home-idiom-search-results"
             role="combobox"
           />
           <span className={cn("truncate text-xs font-semibold text-[#6C7280]", variant === "navbar" ? "hidden laptop:block" : "block mobile:text-sm")}>
-            Find phrases, meanings, or lessons
+            Find phrases and meanings
           </span>
         </label>
         {hasQuery ? (
@@ -245,12 +245,11 @@ export function HomeIdiomSearch({ items, variant = "hero" }: HomeIdiomSearchProp
                         : "border-transparent bg-transparent hover:border-[#E4DDD2] hover:bg-white"
                     )}
                   >
-                    <span className="min-w-0">
-                      <span className="block truncate text-sm font-black text-[#0B1020] mobile:text-base">{item.englishPhrase}</span>
-                      <span dir="rtl" className="mt-2 block truncate text-right font-iranYekan text-sm leading-6 text-[#4E5668]">
+                    <span className="grid min-w-0 grid-cols-[minmax(0,1fr)_minmax(0,1fr)] items-center gap-3">
+                      <span className="truncate text-sm font-black text-[#0B1020] mobile:text-base">{item.englishPhrase}</span>
+                      <span dir="rtl" className="truncate text-right font-iranYekan text-sm leading-6 text-[#4E5668]">
                         {item.persianPhrase || "No Persian meaning yet."}
                       </span>
-                      <span className="mt-1 block text-xs font-semibold text-[#6C7280]">Lesson {item.lessonNumber}</span>
                     </span>
                     <span
                       className={cn(
@@ -267,7 +266,7 @@ export function HomeIdiomSearch({ items, variant = "hero" }: HomeIdiomSearchProp
             ) : (
               <div className="flex min-h-40 flex-col items-center justify-center rounded-lg border border-dashed border-[#D8D1C6] bg-white/70 px-4 text-center">
                 <p className="text-sm font-black text-[#0B1020]">No idioms found</p>
-                <p className="mt-2 max-w-sm text-sm leading-6 text-[#6C7280]">Try a phrase, Persian meaning, or lesson number.</p>
+                <p className="mt-2 max-w-sm text-sm leading-6 text-[#6C7280]">Try a phrase or Persian meaning.</p>
               </div>
             )}
           </div>
