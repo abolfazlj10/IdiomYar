@@ -1,7 +1,7 @@
 import { Level, LevelArray, Book } from "@/types/types";
 import { TbBoxMultiple1, TbBoxMultiple2, TbBoxMultiple3 } from "react-icons/tb";
 import React from "react";
-import { FaSpinner } from "react-icons/fa";
+import { FaCheck, FaSpinner } from "react-icons/fa";
 import { useScrollFade } from "@/hooks/useScrollFade";
 
 interface SideBarDetailProps {
@@ -15,8 +15,6 @@ interface SideBarDetailProps {
   setInformation: (info: string) => void;
   loadingStory: boolean;
   StoryCreator: () => void;
-  removeWord: (index: number) => void;
-  MAX_WORDS_LIMIT: number;
 }
 
 const SideBarDetail: React.FC<SideBarDetailProps> = ({
@@ -30,8 +28,6 @@ const SideBarDetail: React.FC<SideBarDetailProps> = ({
   setInformation,
   loadingStory,
   StoryCreator,
-  removeWord,
-  MAX_WORDS_LIMIT,
 }) => {
   const scrollFade = useScrollFade()
   return (
@@ -95,7 +91,7 @@ const SideBarDetail: React.FC<SideBarDetailProps> = ({
                           }
                         `}
                         style={{ fontWeight: 500, borderWidth: 1 }}
-                        title={isSemiActive ? "This lesson has no selected words yet." : `${wordsFromLesson} word(s) selected`}
+                        title={isSemiActive ? "Select a lesson to include its idioms." : `${wordsFromLesson} idiom(s) included`}
                       >
                         {wordsFromLesson > 0 && (
                           <span className={`absolute top-0 right-0 transform translate-x-1/3 -translate-y-1/3 w-5 h-5 rounded-full text-xs font-semibold z-10 border-2 border-white flex items-center justify-center ${badgeClass}`}>
@@ -127,20 +123,19 @@ const SideBarDetail: React.FC<SideBarDetailProps> = ({
                 words.map((item, index) => {
                   const level = wordLevels[item];
                   const dot = level === 'elementry' ? 'bg-green-400' : level === 'intermediate' ? 'bg-blue-400' : 'bg-red-400';
-                  const removeHover = level === 'elementry' ? 'hover:text-green-600' : level === 'intermediate' ? 'hover:text-blue-600' : 'hover:text-red-600';
                   return (
                     <div key={index} className={`max-[1500px]:w-full max-[1500px]:justify-between max-[1500px]:py-2 relative rounded-full px-3 py-1 flex items-center gap-2 bg-white/20 backdrop-blur-sm border-2 border-primaryColor border-dashed text-gray-800 transition-all duration-150 hover:shadow-sm hover:bg-white/30`}>
                       <span className={`w-[6px] h-[6px] rounded-full inline-block ${dot}`}></span>
                       <span className="font-medium text-sm select-none">{item}</span>
-                      <button onClick={() => removeWord(index)} className={`ml-1 rounded-full bg-transparent text-gray-500 ${removeHover} transition-colors duration-150 select-none cursor-pointer text-base leading-none`}>×</button>
+                      <FaCheck className="ml-1 text-primaryColor text-xs" />
                     </div>
                   );
                 })
                 :
-                <div className="m-auto text-gray-400 text-sm">Choose your favorite words</div>
+                <div className="m-auto text-gray-400 text-sm">Select a lesson to include its idioms</div>
               }
             </div>
-            {/* Word count and legend row */}
+            {/* Idiom count and legend row */}
             <div className="flex items-center justify-between max-[1500px]:flex-wrap gap-2 mt-2 mb-3 text-2xs max-[2432px]:text-2xs">
               <div className="flex gap-1 max-[2432px]:gap-1">
                 <div className="flex items-center gap-2">
@@ -156,7 +151,7 @@ const SideBarDetail: React.FC<SideBarDetailProps> = ({
                   <span>Advanced</span>
                 </div>
               </div>
-              <div className={`text-xs ml-auto font-semibold ${words.length >= MAX_WORDS_LIMIT ? 'text-primaryColor' : 'text-gray-600'}`}>{words.length} / {MAX_WORDS_LIMIT}</div>
+              <div className="text-xs ml-auto font-semibold text-gray-600">{words.length} idioms</div>
             </div>
           </div>
           <div>

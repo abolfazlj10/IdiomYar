@@ -9,8 +9,8 @@ type StoryRequest = {
 const STORY_MODEL = "llama-3.3-70b-versatile";
 const STORY_JSON_EXAMPLE = `{
   "storyFa": [
-    "پاراگراف فارسی اول با [عبارت مشخص‌شده].",
-    "پاراگراف فارسی دوم با [عبارت مشخص‌شده]."
+    "پاراگراف فارسی اول با ترجمه طبیعی عبارت مشخص‌شده.",
+    "پاراگراف فارسی دوم با ترجمه طبیعی عبارت مشخص‌شده."
   ],
   "storyEn": [
     "First English paragraph with the [selected idiom].",
@@ -131,7 +131,7 @@ Rules:
 - Keep paragraphs aligned by meaning: storyFa[0] should match storyEn[0], storyFa[1] should match storyEn[1], and so on.
 - Each paragraph should be 1 to 3 short sentences.
 - Put each selected English idiom in [brackets] in the English story.
-- Put the Persian equivalent or natural translation of each idiom in [brackets] in the Persian story.
+- Do not use brackets in the Persian story. Write the Persian translation naturally.
 - Do not include labels like Persian, English, FA, EN, markdown, comments, or explanation outside the JSON.
 
 Idioms: ${idioms.join(" - ")}.${body.information ? `\nAdditional information: ${body.information}` : ""}`;

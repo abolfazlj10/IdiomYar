@@ -21,7 +21,6 @@ import { addStory } from "@/lib/storage";
 import { toast } from 'react-hot-toast';
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { XIcon } from "lucide-react";
-const MAX_WORDS_LIMIT = 6;
 
 export default function Story () {
 
@@ -41,7 +40,7 @@ export default function Story () {
     const [information, setInformation] = useState<string>("");
     const [loadingStory, setLoadingStory] = useState<boolean>(false);
     const [showStory, setShowStory] = useState<boolean>(false);
-    const [isLargeScreen, setIsLargeScreen] = useState<boolean>(typeof window !== "undefined" ? window.innerWidth >= 1280 : false);
+    const [isLargeScreen, setIsLargeScreen] = useState<boolean>(false);
     const [dialogOpen, setDialogOpen] = useState(false)
     const [story, setStory] = useState<string>("");
     const [storyFa, setStoryFa] = useState<string>("");
@@ -52,89 +51,28 @@ export default function Story () {
 
 
     const selectLevel = (theLevel: Level): void => {
-        // Check if current level has any lessons selected
-        const currentLevelHasLessons = lessons.some(lessonNumber => {
-            // Find which level this lesson belongs to
-            const lessonLevel = Object.keys(books).find(level => {
-                const levelBooks = books[level as Level]
-                return levelBooks?.levels[0]?.lessons.some((lesson: any) => lesson.lesson_number === lessonNumber)
-            }) as Level
-            return lessonLevel === currentSelectedLevel
-        })
-        
-        // If current level has no lessons selected, remove it from levels array
-        if (!currentLevelHasLessons) {
-            setLevel(prev => prev.filter(l => l !== currentSelectedLevel))
-        }
-        
         setCurrentSelectedLevel(theLevel)
-        
-        // Add new level to levels array if not already present
-        if (!level.includes(theLevel)) {
-            setLevel(prev => [...prev, theLevel])
-        }
+        setLevel([theLevel])
+        setLessons([])
+        setCurrentViewingLesson(null)
+        setWords([])
+        setWordLevels({})
+        setWordLessons({})
+        setSteper(1)
     }
 
-    const addWord = (word: string, lessonIndex: number): void => {
-        const foundIndex = words.findIndex((item) => item === word)
-        const lessonNumber = books[currentSelectedLevel]?.levels[0]?.lessons[lessonIndex]?.lesson_number
-        
-        if (foundIndex !== -1) {
-            // Word already exists, remove it
-            removeWord(foundIndex)
-        } else {
-            // Check if we've reached the maximum limit
-            if (words.length >= MAX_WORDS_LIMIT) {
-                return
-            }
-            
-            // Add new word and its level
-            setWords(prevWords => [...prevWords, word])
-            setWordLevels(prev => ({ ...prev, [word]: currentSelectedLevel }))
-            setWordLessons(prev => ({ ...prev, [word]: lessonNumber }))
-        }
-    }
+    const selectLesson = (lessonNumber: number): void => {
+        const lesson = books[currentSelectedLevel]?.levels[0]?.lessons.find((item: any) => item.lesson_number === lessonNumber)
+        const lessonWords = lesson?.idioms.map((item: any) => item.english_phrase).filter(Boolean) ?? []
+        const nextWordLevels = Object.fromEntries(lessonWords.map((word: string) => [word, currentSelectedLevel])) as Record<string, Level>
+        const nextWordLessons = Object.fromEntries(lessonWords.map((word: string) => [word, lessonNumber])) as Record<string, number>
 
-    const removeWord = (index: number): void => {
-        const wordToRemove = words[index]
-
-        // Create new state snapshots
-        const newWords = words.filter((_, i) => i !== index)
-        const newWordLevels = { ...wordLevels }
-        delete newWordLevels[wordToRemove]
-        const newWordLessons = { ...wordLessons }
-        delete newWordLessons[wordToRemove]
-
-        // Update word states
-        setWords(newWords)
-        setWordLevels(newWordLevels)
-        setWordLessons(newWordLessons)
-        
-        // After removing a word, we need to clean up any lessons or levels
-        // that no longer have any associated words.
-
-        // Clean up lessons:
-        // A lesson should be removed from the list if it's not the currently viewed one
-        // AND it has no more words selected from it.
-        setLessons(prevLessons =>
-            prevLessons.filter(lessonNumber => {
-                const hasWords = Object.values(newWordLessons).includes(lessonNumber)
-                return hasWords || lessonNumber === currentViewingLesson
-            })
-        )
-        
-        // Clean up levels:
-        // A level should be removed if it's not the currently selected one
-        // AND it has no more words selected from it.
-        setLevel(prevLevels =>
-            prevLevels.filter(levelName => {
-                if (levelName === currentSelectedLevel) return true // Always keep the active level
-                
-                // Check if any word in the new list belongs to this level
-                const hasWords = Object.values(newWordLevels).includes(levelName)
-                return hasWords
-            })
-        )
+        setCurrentViewingLesson(lessonNumber)
+        setLessons([lessonNumber])
+        setLevel([currentSelectedLevel])
+        setWords(lessonWords)
+        setWordLevels(nextWordLevels)
+        setWordLessons(nextWordLessons)
     }
 
     const StoryCreator = async (): Promise<void> => {
@@ -181,41 +119,6 @@ export default function Story () {
     }
     
     useEffect(() => {
-        setCurrentViewingLesson(null)
-        
-        if (level.length > 1) {            
-            setLessons(prev => prev.filter(lessonNumber => {
-                const wordsFromLesson = Object.values(wordLessons).filter(lesson => lesson === lessonNumber).length
-                return wordsFromLesson > 0
-            }))
-            
-            
-            setLevel(prev => {
-                const levelsToKeep = prev.filter(levelName => {
-                    if (levelName === currentSelectedLevel) return true
-                    
-                    const lessonsFromLevel = lessons.filter(lessonNumber => {
-                        const wordsFromLesson = Object.values(wordLessons).filter(lesson => lesson === lessonNumber).length
-                        if (wordsFromLesson === 0) return false // Skip lessons with 0 words
-                        
-                        // Find which level this lesson belongs to
-                        const lessonLevel = Object.keys(books).find(level => {
-                            const levelBooks = books[level as Level]
-                            return levelBooks?.levels[0]?.lessons.some((lesson: any) => lesson.lesson_number === lessonNumber)
-                        }) as Level
-                        return lessonLevel === levelName
-                    }).length
-                    
-                    return lessonsFromLevel > 0
-                })
-                
-                return levelsToKeep
-            })
-        }
-        
-        if(words.length == 0)
-            setSteper(1)        
-        
         if(scroller.current){
             scroller.current?.scrollTo(0,0)
             mobileScroller.current?.scrollTo(0,0)
@@ -223,23 +126,13 @@ export default function Story () {
     }, [currentSelectedLevel]);
 
     useEffect(()=>{
-        if(lessons.length > 0 && words.length == 0)
-            setSteper(2)
-        else if(lessons.length > 0 && words.length != 0)
-            setSteper(3)
-        else if(lessons.length == 0)
-            setSteper(1)
-
-    },[lessons])
-
-    useEffect(()=>{
         if(words.length != 0)
             setSteper(3)
-        else if(words.length == 0 && steper == 3)
-            setSteper(2)
         else if(words.length == 0 && lessons.length != 0)
             setSteper(2)
-    },[words])
+        else
+            setSteper(1)
+    },[lessons, words])
 
     const NewStorySetting = () => {
         // Reset all story-related data
@@ -282,6 +175,8 @@ export default function Story () {
         };
     }, []);
 
+    const hasSelectedLesson = words.length > 0;
+
     return(
         <div className="min-h-[calc(100dvh-2rem)] min-w-0 overflow-y-auto pb-4 pt-2 max-mobile:min-h-dvh max-mobile:overflow-visible">
             <div className="flex h-full min-w-0 flex-col gap-3 max-mobile:h-auto">
@@ -298,7 +193,7 @@ export default function Story () {
                                 <div className="flex flex-col gap-3 max-mobile:px-0">
                                     <div className="flex flex-col gap-1 max-laptop:gap-1 select-none px-2 max-mobile:px-0">
                                         <div className="text-2xl max-laptop:text-lg max-tablet:text-base font-semibold">Select Level</div>
-                                        <div className="text-gray-400 text-sm max-laptop:text-xs max-tablet:text-xs">Choose a level, then select a lesson and up to six idioms.</div>
+                                        <div className="text-gray-400 text-sm max-laptop:text-xs max-tablet:text-xs">Choose a level, then select one lesson. All idioms from that lesson are included automatically.</div>
                                     </div>
                                     <div className="flex gap-10 px-2 max-mobile:px-0 max-mobile:pr-2 max-[2000px]:gap-3 max-tablet:gap-3 max-laptop:flex-col">
                                         <div onClick={()=> selectLevel('elementry')} className={`border-2 max-laptop:border-2 flex-1 p-6 max-laptop:py-4 max-[2000px]:p-4 max-[1500px]:py-2 max-tablet:py-2 max-tablet:px-2 rounded-xl shadow-lg flex flex-col max-laptop:grid max-laptop:grid-cols-[auto_8fr] gap-5 max-[2000px]:gap-3 items-start duration-300 cursor-pointer hover:-translate-y-1 hover:shadow-2xl relative ${currentSelectedLevel === 'elementry' ? 'border-green-400' : 'border-gray-300 hover:border-green-300'}`}>
@@ -345,34 +240,28 @@ export default function Story () {
                                         </div>
                                     </div>
                                 </div>
-                                {/* desktop => Words selection  */}
+                                {/* desktop => Lesson idioms preview  */}
                                 <div className="flex flex-col gap-3 flex-1 overflow-hidden max-tablet:overflow-visible px-2 max-mobile:px-0 max-tablet:min-h-[300px] max-mobile:min-h-auto">
-                                    {/* desktop => title Select Words */}
+                                    {/* desktop => title Lesson Idioms */}
                                     <div className="flex flex-col gap-1 max-laptop:gap-1 select-none">
-                                        <div className="text-2xl max-laptop:text-lg max-tablet:text-base font-semibold">Select Words</div>
-                                        <div className="text-gray-400 text-sm max-laptop:text-base max-tablet:text-xs">Select idioms from the lesson to include in your story.</div>
+                                        <div className="text-2xl max-laptop:text-lg max-tablet:text-base font-semibold">Select Lesson</div>
+                                        <div className="text-gray-400 text-sm max-laptop:text-base max-tablet:text-xs">Pick a lesson to include all of its idioms in your story.</div>
                                         <div className="flex items-center gap-3">
                                             <div className="flex-1 bg-gray-100 rounded-full h-[6px] max-laptop:h-1 shadow-inner border border-gray-200">
                                                 <div 
-                                                    className={`h-[6px] max-laptop:h-1 rounded-full transition-all duration-500 ease-out shadow-sm bg-gradient-to-r from-bgColor ${words.length >= MAX_WORDS_LIMIT ? 'to-primaryColor/80' : 'to-primaryColor/100'}`}
+                                                    className="h-[6px] max-laptop:h-1 rounded-full transition-all duration-500 ease-out shadow-sm bg-gradient-to-r from-bgColor to-primaryColor/100"
                                                     style={{ 
-                                                        width: `${(words.length / MAX_WORDS_LIMIT) * 100}%`,
-                                                        boxShadow: words.length > 0
-                                                            ? `0 0 12px rgba(92, 107, 236, ${words.length >= MAX_WORDS_LIMIT ? '0.5' : '0.3'})`
+                                                        width: hasSelectedLesson ? "100%" : "0%",
+                                                        boxShadow: hasSelectedLesson
+                                                            ? "0 0 12px rgba(92, 107, 236, 0.3)"
                                                             : 'none'
                                                     }}
                                                 ></div>
                                             </div>
                                             <div className="flex flex-col items-center min-w-[60px]">
-                                                <span className={`text-xs max-tablet:text-xs font-bold ${words.length >= MAX_WORDS_LIMIT ? 'text-primaryColor' : 'text-primaryColor/80'}`}>{words.length}/{MAX_WORDS_LIMIT}</span>
+                                                <span className="text-xs max-tablet:text-xs font-bold text-primaryColor/80">{words.length}</span>
                                                 <span className="text-2xs max-tablet:text-[9px] font-medium text-gray-500">
-                                                    {words.length >= MAX_WORDS_LIMIT 
-                                                        ? 'Completed!' 
-                                                        : words.length >= MAX_WORDS_LIMIT * 0.8 
-                                                            ? 'Almost Full' 
-                                                            : words.length >= MAX_WORDS_LIMIT * 0.5
-                                                                ? 'Halfway'
-                                                                : 'Getting Started'}
+                                                    {hasSelectedLesson ? 'Auto included' : 'Choose lesson'}
                                                 </span>
                                             </div>
                                         </div>
@@ -398,19 +287,7 @@ export default function Story () {
                                                         const selectedText = lessonLevel === 'elementry' ? 'text-green-700' : lessonLevel === 'intermediate' ? 'text-blue-700' : 'text-red-700';
                                                         const selectedDot = lessonLevel === 'elementry' ? 'bg-green-500' : lessonLevel === 'intermediate' ? 'bg-blue-500' : 'bg-red-500';
                                                         return (
-                                                            <div dir="ltr" onClick={() => {
-                                                                // Check if current lesson has any words selected
-                                                                const currentLessonHasWords = Object.values(wordLessons).some(lessonNumber => lessonNumber === currentViewingLesson)
-                                                                // If current lesson has no words, remove it from lessons array
-                                                                if (currentViewingLesson !== null && !currentLessonHasWords) {
-                                                                    setLessons(prev => prev.filter(l => l !== currentViewingLesson))
-                                                                }
-                                                                setCurrentViewingLesson(item.lesson_number)
-                                                                // Add new lesson to lessons array if not already present
-                                                                if (!lessons.includes(item.lesson_number)) {
-                                                                    setLessons(prev => [...prev, item.lesson_number])
-                                                                }
-                                                            }}
+                                                            <div dir="ltr" onClick={() => selectLesson(item.lesson_number)}
                                                                 className={`border-1 rounded-lg pl-3 py-2 select-none bg-white/20 backdrop-blur-sm hover:bg-white/40 cursor-pointer duration-200 flex flex-col items-start gap-1 transition-all
                                                                     ${lessons.includes(item.lesson_number)
                                                                         ? lessonLevel === 'elementry'
@@ -428,7 +305,7 @@ export default function Story () {
                                                                     <span className={`w-[6px] h-[6px] rounded-full inline-block ${lessonLevel === 'elementry' ? 'bg-green-300' : ''} ${lessonLevel === 'intermediate' ? 'bg-blue-300' : ''} ${lessonLevel === 'advanced' ? 'bg-red-300' : ''} ${currentViewingLesson === item.lesson_number ? selectedDot : ''}`}></span>
                                                                     <span className="text-sm max-[1440px]:text-xs font-semibold">Lesson {item.lesson_number}</span>
                                                                 </div>
-                                                                <div className="text-2xs text-gray-400">{books[currentSelectedLevel]?.levels[0]?.lessons[0]?.idioms.length} idioms</div>
+                                                                <div className="text-2xs text-gray-400">{item.idioms.length} idioms</div>
                                                             </div>
                                                         );
                                                     })()
@@ -446,28 +323,14 @@ export default function Story () {
                                                             const lessonIndex = books[currentSelectedLevel]?.levels[0]?.lessons.findIndex((lesson: any) => lesson.lesson_number === currentViewingLesson)
                                                             return lessonIndex !== -1 ? 
                                                                 books[currentSelectedLevel]?.levels[0]?.lessons[lessonIndex]?.idioms.map((item: any, key: number) => {
-                                                                    const isSelected = words.includes(item.english_phrase)
-                                                                    const isLimitReached = words.length >= MAX_WORDS_LIMIT && !isSelected
-                                                                    
                                                                     return (
                                                                         <div 
-                                                                            onClick={() => {
-                                                                                if (!isLimitReached) {
-                                                                                    addWord(item.english_phrase, lessonIndex)
-                                                                                }
-                                                                            }} 
-                                                                            className={`text-sm max-[1440px]:text-xs select-none font-bold shadow border-2 transition-all duration-200 rounded-full px-3 py-2 inline-flex items-center justify-center gap-2 ${
-                                                                                isSelected 
-                                                                                    ? 'bg-primaryColor text-white border-primaryColor/80 shadow-lg scale-105 cursor-pointer' 
-                                                                                    : isLimitReached 
-                                                                                        ? 'border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed opacity-50' 
-                                                                                        : 'bg-[#f9f9f9] border-primaryColor border-dashed cursor-pointer hover:bg-primaryColor/10 hover:scale-105'
-                                                                            }`} 
+                                                                            className="text-sm max-[1440px]:text-xs select-none font-bold shadow border-2 transition-all duration-200 rounded-full px-3 py-2 inline-flex items-center justify-center gap-2 bg-primaryColor/10 text-primaryColor border-primaryColor/40"
                                                                             key={key}
-                                                                            title={isLimitReached ? `Maximum ${MAX_WORDS_LIMIT} words reached. Remove some words first.` : ''}
+                                                                            title="Included automatically from the selected lesson."
                                                                         >
                                                                             {item.english_phrase}
-                                                                            {isSelected && <FaCheck className="text-xs max-[1440px]:text-xs" />}
+                                                                            <FaCheck className="text-xs max-[1440px]:text-xs" />
                                                                         </div>
                                                                     )
                                                                 })
@@ -500,19 +363,7 @@ export default function Story () {
                                                         const selectedText = lessonLevel === 'elementry' ? 'text-green-700' : lessonLevel === 'intermediate' ? 'text-blue-700' : 'text-red-700';
                                                         const selectedDot = lessonLevel === 'elementry' ? 'bg-green-500' : lessonLevel === 'intermediate' ? 'bg-blue-500' : 'bg-red-500';
                                                         return (
-                                                            <div dir="ltr" onClick={() => {
-                                                                // Check if current lesson has any words selected
-                                                                const currentLessonHasWords = Object.values(wordLessons).some(lessonNumber => lessonNumber === currentViewingLesson)
-                                                                // If current lesson has no words, remove it from lessons array
-                                                                if (currentViewingLesson !== null && !currentLessonHasWords) {
-                                                                    setLessons(prev => prev.filter(l => l !== currentViewingLesson))
-                                                                }
-                                                                setCurrentViewingLesson(item.lesson_number)
-                                                                // Add new lesson to lessons array if not already present
-                                                                if (!lessons.includes(item.lesson_number)) {
-                                                                    setLessons(prev => [...prev, item.lesson_number])
-                                                                }
-                                                            }}
+                                                            <div dir="ltr" onClick={() => selectLesson(item.lesson_number)}
                                                                 className={`border rounded-lg pl-3 py-2 select-none bg-white/20 backdrop-blur-sm hover:bg-white/40 cursor-pointer duration-200 flex flex-col items-start gap-1 transition-all
                                                                     ${lessons.includes(item.lesson_number)
                                                                         ? lessonLevel === 'elementry'
@@ -530,7 +381,7 @@ export default function Story () {
                                                                     <span className={`w-[6px] h-[6px] rounded-full inline-block ${lessonLevel === 'elementry' ? 'bg-green-300' : ''} ${lessonLevel === 'intermediate' ? 'bg-blue-300' : ''} ${lessonLevel === 'advanced' ? 'bg-red-300' : ''} ${currentViewingLesson === item.lesson_number ? selectedDot : ''}`}></span>
                                                                     <span className="text-[12px] font-semibold">Lesson {item.lesson_number}</span>
                                                                 </div>
-                                                                <div className="text-[9px] text-gray-400">{books[currentSelectedLevel]?.levels[0]?.lessons[0]?.idioms.length} idioms</div>
+                                                                <div className="text-[9px] text-gray-400">{item.idioms.length} idioms</div>
                                                             </div>
                                                         );
                                                     })()
@@ -543,28 +394,14 @@ export default function Story () {
                                                         const lessonIndex = books[currentSelectedLevel]?.levels[0]?.lessons.findIndex((lesson: any) => lesson.lesson_number === currentViewingLesson)
                                                         return lessonIndex !== -1 ? 
                                                             books[currentSelectedLevel]?.levels[0]?.lessons[lessonIndex]?.idioms.map((item: any, key: number) => {
-                                                                const isSelected = words.includes(item.english_phrase)
-                                                                const isLimitReached = words.length >= MAX_WORDS_LIMIT && !isSelected
-                                                                
                                                                 return (
                                                                     <div 
-                                                                        onClick={() => {
-                                                                            if (!isLimitReached) {
-                                                                                addWord(item.english_phrase, lessonIndex)
-                                                                            }
-                                                                        }} 
-                                                                        className={`text-xs select-none font-bold shadow border-2 transition-all duration-200 rounded-full px-3 py-2 inline-flex items-center justify-center gap-2 ${
-                                                                            isSelected 
-                                                                                ? 'bg-primaryColor text-white border-primaryColor/80 shadow-lg scale-105 cursor-pointer' 
-                                                                                : isLimitReached 
-                                                                                    ? 'border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed opacity-50' 
-                                                                                    : 'bg-[#f9f9f9] border-primaryColor border-dashed cursor-pointer hover:bg-primaryColor/10 hover:scale-105'
-                                                                        }`} 
+                                                                        className="text-xs select-none font-bold shadow border-2 transition-all duration-200 rounded-full px-3 py-2 inline-flex items-center justify-center gap-2 bg-primaryColor/10 text-primaryColor border-primaryColor/40"
                                                                         key={key}
-                                                                        title={isLimitReached ? `Maximum ${MAX_WORDS_LIMIT} words reached. Remove some words first.` : ''}
+                                                                        title="Included automatically from the selected lesson."
                                                                     >
                                                                         {item.english_phrase}
-                                                                        {isSelected && <FaCheck className="text-2xs" />}
+                                                                        <FaCheck className="text-2xs" />
                                                                     </div>
                                                                 )
                                                             })
@@ -602,8 +439,6 @@ export default function Story () {
                                 setInformation={setInformation}
                                 loadingStory={loadingStory}
                                 StoryCreator={StoryCreator}
-                                removeWord={removeWord}
-                                MAX_WORDS_LIMIT={MAX_WORDS_LIMIT}
                             />
                         </div>
                         {/* mobile - tablet => button create story bootom of information input */}
@@ -676,7 +511,7 @@ export default function Story () {
                                                                 return (
                                                                     <div key={index} className={`relative px-3 py-2 rounded-xl text-sm flex items-center justify-center transition-all duration-200 backdrop-blur-sm ${isLastAndOdd ? 'col-span-2' : ''} ${isSemiActive ? 'bg-white/10 border-primaryColor/40 opacity-70 hover:opacity-100 hover:bg-white/20' : 'bg-white/20 border-primaryColor hover:bg-white/40'}`}
                                                                         style={{ fontWeight: 500, borderWidth: 1 }}
-                                                                        title={isSemiActive ? "This lesson has no selected words yet." : `${wordsFromLesson} word(s) selected`}
+                                                                        title={isSemiActive ? "Select a lesson to include its idioms." : `${wordsFromLesson} idiom(s) included`}
                                                                     >
                                                                         {wordsFromLesson > 0 && (
                                                                             <span className={`absolute top-0 right-0 transform translate-x-1/3 -translate-y-1/3 w-5 h-5 rounded-full text-[9px] font-semibold z-10 border-2 border-white flex items-center justify-center ${badgeClass}`}>
@@ -711,20 +546,19 @@ export default function Story () {
                                                         words.map((item,index)=>{
                                                             const level = wordLevels[item];
                                                             const dot = level === 'elementry' ? 'bg-green-400' : level === 'intermediate' ? 'bg-blue-400' : 'bg-red-400';
-                                                            const removeHover = level === 'elementry' ? 'hover:text-green-600' : level === 'intermediate' ? 'hover:text-blue-600' : 'hover:text-red-600';
                                                             return (
                                                                 <div key={index} className={`w-full justify-between py-2 relative rounded-full px-3 flex items-center gap-2 bg-white/20 backdrop-blur-sm border-2 border-primaryColor border-dashed text-gray-800 transition-all duration-150 hover:shadow-sm hover:bg-white/30`}>
                                                                     <span className={`w-[6px] h-[6px] rounded-full inline-block ${dot}`}></span>
                                                                     <span className="font-medium text-xs select-none">{item}</span>
-                                                                    <button onClick={()=> removeWord(index)} className={`ml-1 rounded-full bg-transparent text-gray-500 ${removeHover} transition-colors duration-150 select-none cursor-pointer text-lg leading-none`}>×</button>
+                                                                    <FaCheck className="ml-1 text-primaryColor text-2xs" />
                                                                 </div>
                                                             )
                                                         })
                                                         :
-                                                        <div className="m-auto text-gray-400 text-sm">Choose your favorite words</div>
+                                                        <div className="m-auto text-gray-400 text-sm">Select a lesson to include its idioms</div>
                                                     }
                                                 </div>
-                                                {/* Word count and legend row */}
+                                                {/* Idiom count and legend row */}
                                                 <div className="flex items-center justify-between flex-wrap gap-2 mt-2 mb-3 text-xs max-mobile:text-[10px]">
                                                     <div className="flex gap-2">
                                                         <div className="flex items-center gap-1">
@@ -740,7 +574,7 @@ export default function Story () {
                                                             <span>Advanced</span>
                                                         </div>
                                                     </div>
-                                                    <div className={`text-xs ml-auto font-semibold ${words.length >= MAX_WORDS_LIMIT ? 'text-primaryColor' : 'text-gray-600'}`}>{words.length} / {MAX_WORDS_LIMIT}</div>
+                                                    <div className="text-xs ml-auto font-semibold text-gray-600">{words.length} idioms</div>
                                                 </div>
                                             </div>
                                         </div>
