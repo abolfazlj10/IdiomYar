@@ -17,7 +17,7 @@ const Stepper: React.FC<StepperProps> = ({ steper }) => {
             </div>
             <div className="flex-1 flex flex-col gap-1 max-laptop:gap-1">
                 <div className={`w-full h-[5px] max-laptop:h-[6px] max-tablet:h-[4px] rounded duration-150  ${steper >= 3 ? 'bg-gradient-to-l from-primaryColor from-40% to-bgColor' : 'bg-[#eaeced]'}`}></div>
-                <div className={`text-xs max-laptop:text-sm max-tablet:text-[10px] duration-100 ${steper < 3 && 'text-gray-400'}`}>Words</div>
+                <div className={`text-xs max-laptop:text-sm max-tablet:text-[10px] duration-100 ${steper < 3 && 'text-gray-400'}`}>Idioms</div>
             </div>
         </div>
     );

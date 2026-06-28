@@ -25,8 +25,14 @@ function escapeHtml(text: string): string {
         .replace(/'/g, "&#039;");
 }
 
-function highlightIdioms(text: string): string {
-    return escapeHtml(text).replace(
+function formatStoryText(text: string, highlight: boolean): string {
+    const escapedText = escapeHtml(text);
+
+    if (!highlight) {
+        return escapedText.replace(/\[([^\]]+)\]/g, "$1");
+    }
+
+    return escapedText.replace(
         /\[([^\]]+)\]/g,
         '<span class="rounded-md bg-primaryColor/15 px-1.5 py-0.5 font-extrabold text-primaryColor ring-1 ring-primaryColor/20">$1</span>'
     );
@@ -70,40 +76,60 @@ export const ResultStory = ({
     const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
     const englishParagraphs = splitStoryParagraphs(storyEnglish, 'en');
     const persianParagraphs = splitStoryParagraphs(storyPersian, 'fa');
-    const paragraphCount = Math.max(englishParagraphs.length, persianParagraphs.length);
 
     function copyText(text: string) {
         navigator.clipboard.writeText(text);
         toast.success('Text copied to clipboard.');
     }
 
-    function renderStoryBlock(text: string, lang: StoryLanguage, index: number) {
-        if (!text) return null;
-
+    function renderParagraph(text: string, lang: StoryLanguage, index: number) {
         const isPersian = lang === 'fa';
         const isHovered = hoveredIndex === index;
+
         return (
-            <article
-                className={`min-w-0 rounded-lg border bg-white p-4 shadow-sm transition-all duration-200 ${
-                    isHovered ? 'border-primaryColor/50 bg-primaryColor/[0.03] ring-2 ring-primaryColor/15' : 'border-gray-200'
+            <div
+                key={`${lang}-${index}`}
+                className={`rounded-lg border p-3 transition-all duration-200 ${
+                    isHovered ? 'border-primaryColor/40 bg-primaryColor/[0.03] ring-2 ring-primaryColor/10' : 'border-gray-100 bg-gray-50/70'
                 }`}
                 onMouseEnter={() => setHoveredIndex(index)}
                 onMouseLeave={() => setHoveredIndex(null)}
             >
-                <div className="mb-3 flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-2">
-                        <span className={`size-2 rounded-full ${isPersian ? 'bg-green-400' : 'bg-blue-400'}`}></span>
-                        <img src={isPersian ? "/icon/Flag Iran.svg" : "/icon/Flag England.svg"} alt={isPersian ? "Persian" : "English"} className="size-5" />
-                        <span className={`text-sm font-black ${isPersian ? 'text-green-700' : 'text-blue-700'}`}>{isPersian ? 'Persian' : 'English'}</span>
-                    </div>
-                    <span className="rounded-md bg-gray-100 px-2 py-1 text-xs font-bold text-gray-500">Part {index + 1}</span>
+                <div className="mb-2 flex items-center justify-end">
+                    <span dir="ltr" className="rounded-md bg-white px-2 py-1 text-xs font-bold text-gray-500 shadow-sm">Part {index + 1}</span>
                 </div>
                 <p
                     dir={isPersian ? 'rtl' : 'ltr'}
                     className={`${isPersian ? 'font-iranYekan text-right' : 'text-left'} text-gray-900`}
                     style={{fontSize, lineHeight}}
-                    dangerouslySetInnerHTML={{ __html: highlightIdioms(text) }}
+                    dangerouslySetInnerHTML={{ __html: formatStoryText(text, !isPersian) }}
                 />
+            </div>
+        );
+    }
+
+    function renderStorySection(paragraphs: string[], lang: StoryLanguage) {
+        if (!paragraphs.length) return null;
+
+        const isPersian = lang === 'fa';
+
+        return (
+            <article
+                className="min-w-0 rounded-lg border border-gray-200 bg-white p-4 shadow-sm"
+            >
+                <div className={`mb-3 flex items-center justify-between gap-3 ${isPersian ? 'flex-row-reverse' : ''}`}>
+                    <div className="flex items-center gap-2">
+                        <span className={`size-2 rounded-full ${isPersian ? 'bg-green-400' : 'bg-blue-400'}`}></span>
+                        <img src={isPersian ? "/icon/Flag Iran.svg" : "/icon/Flag England.svg"} alt={isPersian ? "Persian" : "English"} className="size-5" />
+                        <span className={`text-sm font-black ${isPersian ? 'text-green-700' : 'text-blue-700'}`}>{isPersian ? 'Persian' : 'English'}</span>
+                    </div>
+                    <span dir="ltr" className="rounded-md bg-gray-100 px-2 py-1 text-xs font-bold text-gray-500">
+                        {paragraphs.length} {paragraphs.length === 1 ? 'part' : 'parts'}
+                    </span>
+                </div>
+                <div className="flex flex-col gap-3">
+                    {paragraphs.map((paragraph, index) => renderParagraph(paragraph, lang, index))}
+                </div>
             </article>
         );
     }
@@ -170,7 +196,7 @@ export const ResultStory = ({
                     <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3 shadow-sm">
                         <div className="flex items-center gap-2">
                             <span className="rounded-md bg-primaryColor/10 px-2.5 py-1 text-xs font-black text-primaryColor">Structured story</span>
-                            <span className="text-xs font-semibold text-gray-500">Highlighted phrases show the selected idioms.</span>
+                            <span className="text-xs font-semibold text-gray-500">English idioms are highlighted. Persian translation stays natural.</span>
                         </div>
                         <div className="flex items-center gap-2">
                             <button
@@ -187,17 +213,17 @@ export const ResultStory = ({
                     <div className="min-h-0 flex-1 overflow-y-auto pr-1 customScrollBarStyle">
                         <div className="flex flex-col gap-3 pb-2">
                             {focusMode === 'all'
-                                ? Array.from({ length: paragraphCount }).map((_, index) => (
-                                    <section key={index} className="grid grid-cols-2 gap-3 max-tablet:grid-cols-1">
-                                        {renderStoryBlock(englishParagraphs[index] || "", 'en', index)}
-                                        {renderStoryBlock(persianParagraphs[index] || "", 'fa', index)}
+                                ? (
+                                    <section className="grid grid-cols-2 gap-3 max-tablet:grid-cols-1">
+                                        {renderStorySection(englishParagraphs, 'en')}
+                                        {renderStorySection(persianParagraphs, 'fa')}
                                     </section>
-                                ))
-                                : (focusMode === 'en' ? englishParagraphs : persianParagraphs).map((paragraph, index) => (
-                                    <section key={index}>
-                                        {renderStoryBlock(paragraph, focusMode, index)}
+                                )
+                                : (
+                                    <section>
+                                        {renderStorySection(focusMode === 'en' ? englishParagraphs : persianParagraphs, focusMode)}
                                     </section>
-                                ))}
+                                )}
                         </div>
                     </div>
                 </div>
