@@ -34,8 +34,8 @@ const homeSearchItems = allIdioms.map((idiom) => ({
 })) satisfies HomeIdiomSearchItem[];
 
 const tools = [
-  { href: "/cards", label: "Flash Cards", icon: Layers, description: "Study with interactive cards" },
   { href: "/book", label: "Lessons", icon: Library, description: "Browse all idioms by lesson" },
+  { href: "/cards", label: "Flash Cards", icon: Layers, description: "Study with interactive cards" },
   { href: "/story", label: "Stories", icon: BookOpen, description: "Read idioms in context" },
   { href: "/archive", label: "Review", icon: Archive, description: "Review your saved idioms" },
 ];
