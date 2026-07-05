@@ -249,8 +249,6 @@ export default function Book({ searchParams }: BookPageProps): React.ReactElemen
   const selectedIdiomIndex = selectedIdiom ? visibleIdioms.findIndex((idiom) => idiom.id === selectedIdiom.id) : -1;
   const selectedIdiomPosition = selectedIdiomIndex >= 0 ? selectedIdiomIndex + 1 : 0;
   const selectedIdiomKey = selectedIdiom?.id ?? "";
-  const selectedStatus = selectedIdiom ? getStudyStatus(selectedIdiom.id, progress) : "new";
-  const selectedStatusLabel = STUDY_STATUS_LABELS[selectedStatus];
   const selectedExamples = selectedIdiom?.examples ?? [];
   const activeLevelMeta = LEVELS.find((level) => level.id === activeLevel) ?? LEVELS[0];
   const currentBlurMode = STUDY_BLUR_MODE_OPTIONS.find((mode) => mode.id === blurMode) ?? STUDY_BLUR_MODE_OPTIONS[0];
@@ -338,11 +336,85 @@ export default function Book({ searchParams }: BookPageProps): React.ReactElemen
 
   return (
     <main className="flex min-h-[calc(100dvh-2rem)] min-w-0 flex-col overflow-hidden pb-24 pt-2 max-mobile:min-h-dvh max-mobile:overflow-visible">
-      <Appbar title="Lesson Study" iconSrc="/icon/Seedling.svg" rightButton={<div />} onBackClick={() => history.back()} />
+      <div className="max-mobile:hidden">
+        <Appbar title="Lesson Study" iconSrc="/icon/Seedling.svg" rightButton={<div />} onBackClick={() => history.back()} />
+      </div>
 
       <section className="flex min-h-0 flex-1 flex-col">
-        <header className="mx-auto w-full max-w-5xl px-4 py-2.5">
-          <div className="flex flex-wrap items-center justify-between gap-2.5">
+        <header className="mx-auto w-full max-w-5xl px-4 py-2.5 max-mobile:px-0 max-mobile:pt-0">
+          <div className="hidden max-mobile:block">
+            <div className="grid grid-cols-[2.5rem_minmax(0,1fr)_2.5rem] items-center">
+              <button
+                type="button"
+                onClick={() => history.back()}
+                aria-label="Go back"
+                className="inline-flex size-10 items-center justify-center rounded-full text-slate-700 transition-colors duration-150 hover:bg-white focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-primaryColor/25"
+              >
+                <ArrowLeft className="size-5" aria-hidden="true" />
+              </button>
+
+              <div className="flex min-w-0 items-center justify-center gap-2 text-center text-xl font-black tracking-tight text-slate-950">
+                <span className="truncate">Lesson Study</span>
+                <img src="/icon/Seedling.svg" alt="" className="size-6 shrink-0" />
+              </div>
+
+              {selectedIdiom ? (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      aria-label={isBookmarked(selectedIdiom) ? "Remove saved idiom" : "Save idiom"}
+                      onClick={() => setBookmarks(toggleBookmark(selectedIdiom))}
+                      className="inline-flex size-10 items-center justify-center rounded-full text-slate-700 transition-colors duration-150 hover:bg-white focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-primaryColor/25"
+                    >
+                      {isBookmarked(selectedIdiom) ? (
+                        <BookmarkCheck className="size-5 text-primaryColor" aria-hidden="true" />
+                      ) : (
+                        <Bookmark className="size-5" aria-hidden="true" />
+                      )}
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent sideOffset={8}>{isBookmarked(selectedIdiom) ? "Saved" : "Save idiom"}</TooltipContent>
+                </Tooltip>
+              ) : (
+                <span aria-hidden="true" />
+              )}
+            </div>
+
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setStudyToolsOpen(true)}
+                className="flex min-h-13 min-w-0 items-center gap-2 rounded-lg border border-gray-200 bg-white/90 px-3 text-left text-slate-700 shadow-sm transition-[background-color,border-color,box-shadow] duration-150 hover:border-primaryColor/35 hover:bg-white focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-primaryColor/25"
+              >
+                <PanelRightOpen className="size-4 shrink-0 text-slate-500" aria-hidden="true" />
+                <span className="min-w-0">
+                  <span className="block text-[10px] font-black uppercase tracking-wide text-slate-400">Lesson</span>
+                  <span className="block truncate text-[13px] font-black leading-5 text-slate-950">{activeStudyLabel}</span>
+                </span>
+              </button>
+
+              <button
+                type="button"
+                aria-expanded={settingsOpen}
+                aria-controls="study-settings-panel"
+                onClick={() => setSettingsOpen((open) => !open)}
+                className={cn(
+                  "flex min-h-13 min-w-0 items-center gap-2 rounded-lg border px-3 text-left shadow-sm transition-[background-color,border-color,box-shadow] duration-150 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-primaryColor/25",
+                  settingsOpen ? "border-primaryColor/30 bg-primaryColor/10 text-slate-950" : "border-gray-200 bg-white/90 text-slate-700 hover:border-primaryColor/35 hover:bg-white"
+                )}
+              >
+                <Settings2 className="size-4 shrink-0 text-slate-500" aria-hidden="true" />
+                <span className="min-w-0 flex-1">
+                  <span className="block text-[10px] font-black uppercase tracking-wide text-slate-400">Focus</span>
+                  <span className="block truncate text-xs font-black leading-5">{currentBlurMode.label}</span>
+                </span>
+                <ChevronDown className={cn("size-3.5 shrink-0 transition-transform duration-150", settingsOpen && "rotate-180")} aria-hidden="true" />
+              </button>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-between gap-2.5 max-mobile:hidden">
             <Button type="button" variant="outline" onClick={() => setStudyToolsOpen(true)} className={cn("min-w-0 justify-start", HEADER_TOOL_BUTTON_CLASS)}>
               <PanelRightOpen className="size-3.5" aria-hidden="true" />
               <span className="truncate">{activeStudyLabel}</span>
@@ -363,28 +435,25 @@ export default function Book({ searchParams }: BookPageProps): React.ReactElemen
               </Button>
 
               {selectedIdiom ? (
-                <>
-                  <StatusDot status={selectedStatus} />
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        type="button"
-                        size="icon"
-                        variant="ghost"
-                        aria-label={isBookmarked(selectedIdiom) ? "Remove saved idiom" : "Save idiom"}
-                        onClick={() => setBookmarks(toggleBookmark(selectedIdiom))}
-                        className={HEADER_ICON_BUTTON_CLASS}
-                      >
-                        {isBookmarked(selectedIdiom) ? (
-                          <BookmarkCheck className="size-4 text-primaryColor" aria-hidden="true" />
-                        ) : (
-                          <Bookmark className="size-4" aria-hidden="true" />
-                        )}
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent sideOffset={8}>{isBookmarked(selectedIdiom) ? "Saved" : "Save idiom"}</TooltipContent>
-                  </Tooltip>
-                </>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      aria-label={isBookmarked(selectedIdiom) ? "Remove saved idiom" : "Save idiom"}
+                      onClick={() => setBookmarks(toggleBookmark(selectedIdiom))}
+                      className={HEADER_ICON_BUTTON_CLASS}
+                    >
+                      {isBookmarked(selectedIdiom) ? (
+                        <BookmarkCheck className="size-4 text-primaryColor" aria-hidden="true" />
+                      ) : (
+                        <Bookmark className="size-4" aria-hidden="true" />
+                      )}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent sideOffset={8}>{isBookmarked(selectedIdiom) ? "Saved" : "Save idiom"}</TooltipContent>
+                </Tooltip>
               ) : null}
             </div>
           </div>
@@ -808,31 +877,6 @@ function StudyToolsSheet({
         </div>
       </SheetContent>
     </Sheet>
-  );
-}
-
-function StatusDot({ status }: { status: StudyListStatus }): React.ReactElement {
-  const styles: Record<StudyListStatus, string> = {
-    new: "bg-gray-400",
-    learning: "bg-blue-500",
-    review: "bg-amber-500",
-    known: "bg-emerald-500",
-  };
-
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <span
-          role="status"
-          title={`Status: ${STUDY_STATUS_LABELS[status]}`}
-          aria-label={`Status: ${STUDY_STATUS_LABELS[status]}`}
-          className="inline-flex size-9 items-center justify-center rounded-lg border border-gray-200 bg-white max-mobile:size-10"
-        >
-          <span className={cn("size-2 rounded-full", styles[status])} aria-hidden="true" />
-        </span>
-      </TooltipTrigger>
-      <TooltipContent sideOffset={8}>{STUDY_STATUS_LABELS[status]}</TooltipContent>
-    </Tooltip>
   );
 }
 
