@@ -2,8 +2,8 @@
 
 import * as Dialog from "@radix-ui/react-dialog";
 import { AnimatePresence, motion, useReducedMotion, type PanInfo, type Variants } from "framer-motion";
-import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent } from "react";
-import { ArrowLeft, ArrowRight, CheckCircle2, Eye, RotateCcw, Shuffle, SlidersHorizontal, Star, X } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent } from "react";
+import { ArrowLeft, ArrowRight, Eye, RotateCcw, Shuffle, SlidersHorizontal, Star, X } from "lucide-react";
 import Appbar from "@/components/appbar";
 import { Button } from "@/components/ui/button";
 import { getAllIdioms, getIdiomsForLesson, getLessons, LEVELS, type IdiomEntry } from "@/lib/idioms";
@@ -29,6 +29,7 @@ type StudyPosition = {
 };
 
 type DeckPlacement = "start" | "end";
+type NextPressState = "idle" | "holding";
 
 type DeckSelectionDialogProps = {
   deckLength: number;
@@ -82,6 +83,7 @@ const SWIPE_DISTANCE = 90;
 const SWIPE_VELOCITY = 520;
 const DRAG_CLICK_SUPPRESSION_MS = 700;
 const POINTER_DRAG_TOLERANCE = 8;
+const LONG_PRESS_REVIEW_MS = 1500;
 
 const levelDialogStyles = {
   elementary: {
@@ -239,12 +241,18 @@ export default function Cards({ searchParams }: CardsPageProps): React.ReactElem
   const [deckOrder, setDeckOrder] = useState<string[]>([]);
   const [reviewMode, setReviewMode] = useState(requestedModeParam === "review");
   const [transitionDirection, setTransitionDirection] = useState(0);
+  const [nextPressState, setNextPressState] = useState<NextPressState>("idle");
   const nextDeckPlacementRef = useRef<DeckPlacement>("start");
   const suppressRevealClickRef = useRef(false);
   const suppressRevealResetRef = useRef<number | null>(null);
   const nextDeckDirectionRef = useRef(0);
   const pointerStartRef = useRef<{ x: number; y: number } | null>(null);
   const pointerMovedRef = useRef(false);
+  const nextPressTimerRef = useRef<number | null>(null);
+  const nextPressActiveRef = useRef(false);
+  const nextPressCompletedRef = useRef(false);
+  const nextClickHandledRef = useRef(false);
+  const nextClickHandledResetRef = useRef<number | null>(null);
 
   const normalDeck = useMemo(() => getIdiomsForLesson(activeLevel, activeLesson), [activeLevel, activeLesson]);
   const reviewDeck = useMemo(() => getAllIdioms().filter((idiom) => progress.review[idiom.id]), [progress.review]);
@@ -404,6 +412,14 @@ export default function Cards({ searchParams }: CardsPageProps): React.ReactElem
       if (suppressRevealResetRef.current !== null) {
         window.clearTimeout(suppressRevealResetRef.current);
       }
+
+      if (nextPressTimerRef.current !== null) {
+        window.clearTimeout(nextPressTimerRef.current);
+      }
+
+      if (nextClickHandledResetRef.current !== null) {
+        window.clearTimeout(nextClickHandledResetRef.current);
+      }
     };
   }, []);
 
@@ -491,15 +507,145 @@ export default function Cards({ searchParams }: CardsPageProps): React.ReactElem
 
       setProgress(markCard(current.id, status));
 
-      if (currentIndex >= deck.length - 1 && nextLessonPosition) {
+      if (currentIndex < deck.length - 1) {
+        move(1);
+        return;
+      }
+
+      if (nextLessonPosition) {
         goToLesson(nextLessonPosition, 1, "start");
         return;
       }
 
-      move(1);
+      openDeckDialog();
     },
-    [current, currentIndex, deck.length, goToLesson, move, nextLessonPosition]
+    [current, currentIndex, deck.length, goToLesson, move, nextLessonPosition, openDeckDialog]
   );
+
+  const clearNextPressTimer = useCallback((): void => {
+    if (nextPressTimerRef.current !== null) {
+      window.clearTimeout(nextPressTimerRef.current);
+      nextPressTimerRef.current = null;
+    }
+  }, []);
+
+  const clearNextClickSuppression = useCallback((): void => {
+    if (nextClickHandledResetRef.current !== null) {
+      window.clearTimeout(nextClickHandledResetRef.current);
+      nextClickHandledResetRef.current = null;
+    }
+  }, []);
+
+  const suppressNextClick = useCallback(
+    (duration = DRAG_CLICK_SUPPRESSION_MS): void => {
+      clearNextClickSuppression();
+      nextClickHandledRef.current = true;
+      nextClickHandledResetRef.current = window.setTimeout(() => {
+        nextClickHandledRef.current = false;
+        nextClickHandledResetRef.current = null;
+      }, duration);
+    },
+    [clearNextClickSuppression]
+  );
+
+  const resetNextPress = useCallback(
+    (cancelClick = false): void => {
+      const wasActive = nextPressActiveRef.current;
+
+      clearNextPressTimer();
+      nextPressActiveRef.current = false;
+      nextPressCompletedRef.current = false;
+
+      if (cancelClick && wasActive) {
+        suppressNextClick();
+      }
+
+      setNextPressState("idle");
+    },
+    [clearNextPressTimer, suppressNextClick]
+  );
+
+  const startNextPress = useCallback((): void => {
+    if (!current || nextPressActiveRef.current) {
+      return;
+    }
+
+    clearNextPressTimer();
+    nextPressActiveRef.current = true;
+    nextPressCompletedRef.current = false;
+    setNextPressState("holding");
+
+    nextPressTimerRef.current = window.setTimeout(() => {
+      nextPressTimerRef.current = null;
+      nextPressActiveRef.current = false;
+      nextPressCompletedRef.current = true;
+      suppressNextClick(1200);
+      setNextPressState("idle");
+      mark("review");
+    }, LONG_PRESS_REVIEW_MS);
+  }, [clearNextPressTimer, current, mark, suppressNextClick]);
+
+  const finishNextPressAsKnown = useCallback((): void => {
+    if (nextPressCompletedRef.current) {
+      nextPressCompletedRef.current = false;
+      return;
+    }
+
+    if (!nextPressActiveRef.current) {
+      return;
+    }
+
+    clearNextPressTimer();
+    nextPressActiveRef.current = false;
+    suppressNextClick();
+    setNextPressState("idle");
+    mark("known");
+  }, [clearNextPressTimer, mark, suppressNextClick]);
+
+  const handleNextClick = useCallback((): void => {
+    if (nextClickHandledRef.current) {
+      clearNextClickSuppression();
+      nextClickHandledRef.current = false;
+      return;
+    }
+
+    mark("known");
+  }, [clearNextClickSuppression, mark]);
+
+  const handleNextPointerDown = useCallback(
+    (event: PointerEvent<HTMLButtonElement>): void => {
+      if (event.button !== 0) {
+        return;
+      }
+
+      startNextPress();
+    },
+    [startNextPress]
+  );
+
+  const handleNextKeyDown = useCallback(
+    (event: ReactKeyboardEvent<HTMLButtonElement>): void => {
+      if ((event.key === " " || event.key === "Enter") && !event.repeat) {
+        event.preventDefault();
+        startNextPress();
+      }
+    },
+    [startNextPress]
+  );
+
+  const handleNextKeyUp = useCallback(
+    (event: ReactKeyboardEvent<HTMLButtonElement>): void => {
+      if (event.key === " " || event.key === "Enter") {
+        event.preventDefault();
+        finishNextPressAsKnown();
+      }
+    },
+    [finishNextPressAsKnown]
+  );
+
+  useEffect(() => {
+    resetNextPress();
+  }, [current?.id, resetNextPress]);
 
   const handleDeckDialogOpenChange = (open: boolean): void => {
     setDeckDialogOpen(open);
@@ -547,7 +693,7 @@ export default function Cards({ searchParams }: CardsPageProps): React.ReactElem
 
       if (event.key === "ArrowRight") {
         event.preventDefault();
-        advance();
+        mark("known");
       }
 
       if ((event.key === " " || event.key === "Enter") && !showAnswer) {
@@ -558,7 +704,9 @@ export default function Cards({ searchParams }: CardsPageProps): React.ReactElem
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [advance, current, deckDialogOpen, retreat, revealCurrentCard, showAnswer]);
+  }, [current, deckDialogOpen, mark, retreat, revealCurrentCard, showAnswer]);
+
+  const isNextPressHolding = nextPressState === "holding";
 
   return (
     <main className="mx-auto flex min-h-[calc(100dvh-2rem)] w-full min-w-0 flex-col gap-4 pb-4 pt-2 laptop:h-[calc(100dvh-2rem)] laptop:overflow-hidden">
@@ -688,21 +836,6 @@ export default function Cards({ searchParams }: CardsPageProps): React.ReactElem
                                 </div>
                               ) : null}
                             </div>
-
-                            {showAnswer ? (
-                              <div className="mt-6 grid grid-cols-2 gap-2 border-t border-slate-200 pt-5 mobile:gap-3">
-                                <Button type="button" size="lg" variant="review" onClick={() => mark("review")} className="px-2 mobile:px-4">
-                                  <Star className="size-4" />
-                                  <span className="hidden mobile:inline">Review Again</span>
-                                  <span className="mobile:hidden">Review</span>
-                                </Button>
-                                <Button type="button" size="lg" variant="success" onClick={() => mark("known")} className="px-2 mobile:px-4">
-                                  <CheckCircle2 className="size-4" />
-                                  <span className="hidden mobile:inline">Know It</span>
-                                  <span className="mobile:hidden">Know</span>
-                                </Button>
-                              </div>
-                            ) : null}
                           </div>
                         </div>
                       </motion.div>
@@ -744,27 +877,59 @@ export default function Cards({ searchParams }: CardsPageProps): React.ReactElem
                   </Button>
                 ) : null}
 
-                <Button type="button" size="lg" onClick={advance} className="min-w-0 px-2 mobile:px-4" aria-label={isLastCard ? nextLessonAriaLabel : "Next card"}>
-                  {isLastCard ? (
-                    nextLessonPosition ? (
+                <Button
+                  type="button"
+                  size="lg"
+                  onClick={handleNextClick}
+                  onPointerDown={handleNextPointerDown}
+                  onPointerUp={finishNextPressAsKnown}
+                  onPointerLeave={() => resetNextPress(true)}
+                  onPointerCancel={() => resetNextPress(true)}
+                  onKeyDown={handleNextKeyDown}
+                  onKeyUp={handleNextKeyUp}
+                  onBlur={() => resetNextPress(true)}
+                  onContextMenu={(event) => event.preventDefault()}
+                  className={`relative min-w-0 overflow-hidden px-2 mobile:px-4 ${
+                    isNextPressHolding
+                      ? "border border-amber-300 bg-amber-50 text-amber-900 shadow-[0_0_0_3px_rgba(245,158,11,0.16)] hover:bg-amber-50"
+                      : ""
+                  }`}
+                  aria-label={`${isLastCard ? nextLessonAriaLabel : "Next card"}. Press to mark known. Hold briefly to save for review.`}
+                >
+                  <span
+                    aria-hidden="true"
+                    className={`absolute inset-y-0 left-0 z-0 bg-amber-300/35 transition-[width] ease-linear ${
+                      isNextPressHolding ? "w-full duration-[1500ms]" : "w-0 duration-150"
+                    }`}
+                  />
+                  <span className="relative z-10 inline-flex min-w-0 items-center justify-center gap-2">
+                    {isNextPressHolding ? (
                       <>
-                        <span className="hidden tablet:inline">Next lesson</span>
-                        <span className="tablet:hidden">Lesson {nextLessonPosition.lesson}</span>
-                        <ArrowRight className="size-4" />
+                        <Star className="size-4" />
+                        <span className="hidden mobile:inline">Save for review</span>
+                        <span className="mobile:hidden">Save</span>
                       </>
                     ) : (
                       <>
-                        <SlidersHorizontal className="size-4" />
-                        <span className="hidden tablet:inline">Choose deck</span>
-                        <span className="tablet:hidden">Decks</span>
+                        {isLastCard ? (
+                          nextLessonPosition ? (
+                            <>
+                              <span className="hidden tablet:inline">Next lesson</span>
+                              <span className="tablet:hidden">Lesson {nextLessonPosition.lesson}</span>
+                            </>
+                          ) : (
+                            <>
+                              <span className="hidden tablet:inline">Choose deck</span>
+                              <span className="tablet:hidden">Decks</span>
+                            </>
+                          )
+                        ) : (
+                          <span>Next</span>
+                        )}
+                        <ArrowRight className="size-4" />
                       </>
-                    )
-                  ) : (
-                    <>
-                      <span>Next</span>
-                      <ArrowRight className="size-4" />
-                    </>
-                  )}
+                    )}
+                  </span>
                 </Button>
               </div>
             </>
@@ -776,7 +941,7 @@ export default function Cards({ searchParams }: CardsPageProps): React.ReactElem
                 </p>
                 <p className="mt-2 text-sm leading-6 text-slate-500">
                   {reviewMode
-                    ? "Mark a few cards as Review Again to build this deck."
+                    ? "No cards saved for another pass yet."
                     : "Choose another level or lesson from the deck selector."}
                 </p>
                 <Button type="button" className="mt-5" onClick={openDeckDialog}>
@@ -926,7 +1091,7 @@ function DeckSelectionDialog({
               </>
             ) : (
               <div className="mt-5 rounded-lg border border-blue-100 bg-blue-50 p-4 text-sm leading-6 text-blue-950">
-                Review mode collects every idiom you marked as Review Again across the app. You currently have {reviewDeckLength} review cards.
+                You currently have {reviewDeckLength} review cards saved for another pass.
               </div>
             )}
 
