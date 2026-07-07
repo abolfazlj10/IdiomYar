@@ -59,6 +59,11 @@ type RequestedStudyPosition = {
   idiomId?: string;
 };
 
+type StudyPosition = {
+  level: LevelId;
+  lesson: number;
+};
+
 type StudyListStatus = RecallStatus | "new";
 type StudyBlurMode = "persian" | "english" | "none";
 
@@ -107,6 +112,71 @@ function getParam(value: string | string[] | undefined): string | null {
 
 function getFirstLessonNumber(level: LevelId): number {
   return getLessons(level)[0]?.lesson_number ?? 1;
+}
+
+function getNextLessonPosition(level: LevelId, lessonNumber: number): StudyPosition | null {
+  const levelIndex = LEVELS.findIndex((item) => item.id === level);
+
+  if (levelIndex < 0) {
+    return null;
+  }
+
+  const lessons = getLessons(level);
+  const lessonIndex = lessons.findIndex((lesson) => lesson.lesson_number === lessonNumber);
+  const nextLesson = lessonIndex >= 0 ? lessons[lessonIndex + 1] : undefined;
+
+  if (nextLesson) {
+    return {
+      level,
+      lesson: nextLesson.lesson_number,
+    };
+  }
+
+  for (const nextLevel of LEVELS.slice(levelIndex + 1)) {
+    const firstLesson = getLessons(nextLevel.id)[0];
+
+    if (firstLesson) {
+      return {
+        level: nextLevel.id,
+        lesson: firstLesson.lesson_number,
+      };
+    }
+  }
+
+  return null;
+}
+
+function getPreviousLessonPosition(level: LevelId, lessonNumber: number): StudyPosition | null {
+  const levelIndex = LEVELS.findIndex((item) => item.id === level);
+
+  if (levelIndex < 0) {
+    return null;
+  }
+
+  const lessons = getLessons(level);
+  const lessonIndex = lessons.findIndex((lesson) => lesson.lesson_number === lessonNumber);
+  const previousLesson = lessonIndex > 0 ? lessons[lessonIndex - 1] : undefined;
+
+  if (previousLesson) {
+    return {
+      level,
+      lesson: previousLesson.lesson_number,
+    };
+  }
+
+  for (let previousLevelIndex = levelIndex - 1; previousLevelIndex >= 0; previousLevelIndex -= 1) {
+    const previousLevel = LEVELS[previousLevelIndex];
+    const lastLesson = getLessons(previousLevel.id).at(-1);
+
+    if (lastLesson) {
+      return {
+        level: previousLevel.id,
+        lesson: lastLesson.lesson_number,
+      };
+    }
+  }
+
+  return null;
 }
 
 function parseLevelParam(value: string | null): LevelId | null {
@@ -251,6 +321,18 @@ export default function Book({ searchParams }: BookPageProps): React.ReactElemen
   const selectedIdiomKey = selectedIdiom?.id ?? "";
   const selectedExamples = selectedIdiom?.examples ?? [];
   const activeLevelMeta = LEVELS.find((level) => level.id === activeLevel) ?? LEVELS[0];
+  const previousLessonPosition = useMemo(
+    () => (hasSearchQuery ? null : getPreviousLessonPosition(activeLevel, activeLesson)),
+    [activeLesson, activeLevel, hasSearchQuery]
+  );
+  const nextLessonPosition = useMemo(
+    () => (hasSearchQuery ? null : getNextLessonPosition(activeLevel, activeLesson)),
+    [activeLesson, activeLevel, hasSearchQuery]
+  );
+  const previousLessonLevelLabel = previousLessonPosition ? LEVELS.find((level) => level.id === previousLessonPosition.level)?.label ?? "" : "";
+  const nextLessonLevelLabel = nextLessonPosition ? LEVELS.find((level) => level.id === nextLessonPosition.level)?.label ?? "" : "";
+  const isFirstVisibleIdiom = selectedIdiomIndex <= 0;
+  const isLastVisibleIdiom = selectedIdiomIndex >= visibleIdioms.length - 1;
   const currentBlurMode = STUDY_BLUR_MODE_OPTIONS.find((mode) => mode.id === blurMode) ?? STUDY_BLUR_MODE_OPTIONS[0];
   const activeStudyLabel = hasSearchQuery ? `Search: ${trimmedQuery}` : `${activeLevelMeta.label} / Lesson ${activeLesson}`;
   const detailItems = selectedIdiom
@@ -320,14 +402,33 @@ export default function Book({ searchParams }: BookPageProps): React.ReactElemen
     setQuery("");
     setSelectedIdiomId("");
   };
+  const goToLesson = (position: StudyPosition, placement: "start" | "end"): void => {
+    const idioms = getIdiomsForLesson(position.level, position.lesson);
+    const nextSelectedIdiom = placement === "end" ? idioms.at(-1) : idioms[0];
+
+    setActiveLevel(position.level);
+    setActiveLesson(position.lesson);
+    setSelectedIdiomId(nextSelectedIdiom?.id ?? "");
+    setQuery("");
+  };
   const handlePreviousIdiom = (): void => {
     if (selectedIdiomIndex > 0) {
       setSelectedIdiomId(visibleIdioms[selectedIdiomIndex - 1].id);
+      return;
+    }
+
+    if (previousLessonPosition) {
+      goToLesson(previousLessonPosition, "end");
     }
   };
   const handleNextIdiom = (): void => {
     if (selectedIdiomIndex < visibleIdioms.length - 1) {
       setSelectedIdiomId(visibleIdioms[selectedIdiomIndex + 1].id);
+      return;
+    }
+
+    if (nextLessonPosition) {
+      goToLesson(nextLessonPosition, "start");
     }
   };
   const toggleExampleOverride = (exampleKey: string): void => {
@@ -587,8 +688,20 @@ export default function Book({ searchParams }: BookPageProps): React.ReactElemen
         total={visibleIdioms.length}
         onPrevious={handlePreviousIdiom}
         onNext={handleNextIdiom}
-        previousDisabled={selectedIdiomIndex <= 0}
-        nextDisabled={selectedIdiomIndex >= visibleIdioms.length - 1}
+        previousDisabled={selectedIdiomIndex < 0 || (isFirstVisibleIdiom && !previousLessonPosition)}
+        nextDisabled={selectedIdiomIndex < 0 || (isLastVisibleIdiom && !nextLessonPosition)}
+        previousLesson={isFirstVisibleIdiom ? previousLessonPosition : null}
+        nextLesson={isLastVisibleIdiom ? nextLessonPosition : null}
+        previousAriaLabel={
+          isFirstVisibleIdiom && previousLessonPosition
+            ? `Go to ${previousLessonLevelLabel} lesson ${previousLessonPosition.lesson}`.trim()
+            : "Previous idiom"
+        }
+        nextAriaLabel={
+          isLastVisibleIdiom && nextLessonPosition
+            ? `Go to ${nextLessonLevelLabel} lesson ${nextLessonPosition.lesson}`.trim()
+            : "Next idiom"
+        }
       />
 
       <StudyToolsSheet
@@ -635,6 +748,10 @@ function BottomStudyNav({
   onNext,
   previousDisabled,
   nextDisabled,
+  previousLesson,
+  nextLesson,
+  previousAriaLabel,
+  nextAriaLabel,
 }: {
   current: number;
   total: number;
@@ -642,6 +759,10 @@ function BottomStudyNav({
   onNext: () => void;
   previousDisabled: boolean;
   nextDisabled: boolean;
+  previousLesson: StudyPosition | null;
+  nextLesson: StudyPosition | null;
+  previousAriaLabel: string;
+  nextAriaLabel: string;
 }): React.ReactElement {
   return (
     <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-gray-200 bg-white/95 px-4 py-2.5 shadow-[0_-8px_30px_rgba(15,23,42,0.08)] backdrop-blur">
@@ -651,10 +772,21 @@ function BottomStudyNav({
           variant="outline"
           onClick={onPrevious}
           disabled={previousDisabled}
+          aria-label={previousAriaLabel}
           className="min-h-10 justify-self-start px-3 text-sm max-mobile:min-h-11 max-mobile:w-full"
         >
-          <ArrowLeft className="size-3.5" aria-hidden="true" />
-          Previous
+          {previousLesson ? (
+            <>
+              <ArrowLeft className="size-3.5" aria-hidden="true" />
+              <span className="hidden tablet:inline">Previous lesson</span>
+              <span className="tablet:hidden">Lesson {previousLesson.lesson}</span>
+            </>
+          ) : (
+            <>
+              <ArrowLeft className="size-3.5" aria-hidden="true" />
+              Previous
+            </>
+          )}
         </Button>
         <div className="rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs font-black tabular-nums text-gray-700">
           {current} / {total}
@@ -664,10 +796,21 @@ function BottomStudyNav({
           variant="default"
           onClick={onNext}
           disabled={nextDisabled}
+          aria-label={nextAriaLabel}
           className="min-h-10 justify-self-end px-3 text-sm max-mobile:min-h-11 max-mobile:w-full"
         >
-          Next
-          <ArrowRight className="size-3.5" aria-hidden="true" />
+          {nextLesson ? (
+            <>
+              <span className="hidden tablet:inline">Next lesson</span>
+              <span className="tablet:hidden">Lesson {nextLesson.lesson}</span>
+              <ArrowRight className="size-3.5" aria-hidden="true" />
+            </>
+          ) : (
+            <>
+              Next
+              <ArrowRight className="size-3.5" aria-hidden="true" />
+            </>
+          )}
         </Button>
       </div>
     </nav>
