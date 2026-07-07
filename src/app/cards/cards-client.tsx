@@ -1,6 +1,7 @@
 "use client";
 
 import * as Dialog from "@radix-ui/react-dialog";
+import { AnimatePresence, motion, useReducedMotion, type PanInfo, type Variants } from "framer-motion";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ArrowLeft, ArrowRight, CheckCircle2, Eye, RotateCcw, Shuffle, SlidersHorizontal, Star, X } from "lucide-react";
 import Appbar from "@/components/appbar";
@@ -22,18 +23,11 @@ type CardsPageProps = {
   searchParams?: StudySearchParams;
 };
 
-type SessionStats = {
-  known: number;
-  review: number;
-};
-
 type DeckSelectionDialogProps = {
-  activeDeckLabel: string;
   deckLength: number;
   draftLesson: number;
   draftLevel: LevelId;
   draftReviewMode: boolean;
-  knownInDeck: number;
   onApply: () => void;
   onDraftLessonChange: (lesson: number) => void;
   onDraftLevelChange: (level: LevelId) => void;
@@ -43,12 +37,42 @@ type DeckSelectionDialogProps = {
   onShuffleDeck: () => void;
   open: boolean;
   reviewDeckLength: number;
-  reviewInDeck: number;
-  sessionStats: SessionStats;
 };
 
 const modeButton =
   "min-h-11 rounded-lg border px-3 py-2 text-sm font-black transition-colors duration-150 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-primary/25";
+
+const flashCardVariants: Variants = {
+  enter: (direction: number) => ({
+    opacity: 0,
+    rotateZ: direction > 0 ? 2.5 : direction < 0 ? -2.5 : 0,
+    scale: 0.96,
+    x: direction > 0 ? 88 : direction < 0 ? -88 : 0,
+  }),
+  center: {
+    opacity: 1,
+    rotateZ: 0,
+    scale: 1,
+    x: 0,
+    transition: { duration: 0.34, ease: [0.22, 1, 0.36, 1] },
+  },
+  exit: (direction: number) => ({
+    opacity: 0,
+    rotateZ: direction > 0 ? -2.5 : direction < 0 ? 2.5 : 0,
+    scale: 0.96,
+    x: direction > 0 ? -88 : direction < 0 ? 88 : 0,
+    transition: { duration: 0.24, ease: [0.4, 0, 1, 1] },
+  }),
+};
+
+const reducedFlashCardVariants: Variants = {
+  enter: { opacity: 0 },
+  center: { opacity: 1, transition: { duration: 0.12 } },
+  exit: { opacity: 0, transition: { duration: 0.08 } },
+};
+
+const SWIPE_DISTANCE = 90;
+const SWIPE_VELOCITY = 520;
 
 const levelDialogStyles = {
   elementary: {
@@ -117,6 +141,7 @@ function hasSeenDeckSelector(): boolean {
 }
 
 export default function Cards({ searchParams }: CardsPageProps): React.ReactElement {
+  const prefersReducedMotion = useReducedMotion();
   const requestedLevelParam = getParam(searchParams?.level);
   const requestedLessonParam = getParam(searchParams?.lesson);
   const requestedModeParam = getParam(searchParams?.mode);
@@ -139,7 +164,7 @@ export default function Cards({ searchParams }: CardsPageProps): React.ReactElem
   const [deckDialogOpen, setDeckDialogOpen] = useState(false);
   const [deckOrder, setDeckOrder] = useState<string[]>([]);
   const [reviewMode, setReviewMode] = useState(requestedModeParam === "review");
-  const [stats, setStats] = useState<SessionStats>({ known: 0, review: 0 });
+  const [transitionDirection, setTransitionDirection] = useState(0);
 
   const normalDeck = useMemo(() => getIdiomsForLesson(activeLevel, activeLesson), [activeLevel, activeLesson]);
   const reviewDeck = useMemo(() => getAllIdioms().filter((idiom) => progress.review[idiom.id]), [progress.review]);
@@ -153,19 +178,12 @@ export default function Cards({ searchParams }: CardsPageProps): React.ReactElem
     return deckOrder.map((id) => byId.get(id)).filter(Boolean) as IdiomEntry[];
   }, [deckOrder, sourceDeck]);
   const current = deck[currentIndex];
-  const activeLevelMeta = LEVELS.find((level) => level.id === activeLevel) ?? LEVELS[0];
-  const knownInDeck = sourceDeck.filter((idiom) => progress.known[idiom.id]).length;
-  const reviewInDeck = sourceDeck.filter((idiom) => progress.review[idiom.id]).length;
   const progressPercent = deck.length ? Math.round(((currentIndex + 1) / deck.length) * 100) : 0;
-  const remaining = Math.max(deck.length - currentIndex - 1, 0);
-  const deckTitle = reviewMode ? "Review Deck" : `Lesson ${activeLesson}`;
-  const deckSubtitle = reviewMode ? `${reviewDeck.length} cards marked for review` : `${activeLevelMeta.label} - ${sourceDeck.length} cards`;
-  const activeDeckLabel = reviewMode ? "Review deck" : `${activeLevelMeta.label} - Lesson ${activeLesson}`;
 
   const resetSession = useCallback((): void => {
+    setTransitionDirection(0);
     setCurrentIndex(0);
     setShowAnswer(false);
-    setStats({ known: 0, review: 0 });
   }, []);
 
   useEffect(() => {
@@ -200,10 +218,17 @@ export default function Cards({ searchParams }: CardsPageProps): React.ReactElem
 
   const move = useCallback(
     (direction: number): void => {
+      const nextIndex = Math.min(Math.max(currentIndex + direction, 0), Math.max(deck.length - 1, 0));
+
+      if (nextIndex === currentIndex) {
+        return;
+      }
+
+      setTransitionDirection(direction > 0 ? 1 : -1);
       setShowAnswer(false);
-      setCurrentIndex((index) => Math.min(Math.max(index + direction, 0), Math.max(deck.length - 1, 0)));
+      setCurrentIndex(nextIndex);
     },
-    [deck.length]
+    [currentIndex, deck.length]
   );
 
   const shuffleDeck = useCallback((): void => {
@@ -223,7 +248,6 @@ export default function Cards({ searchParams }: CardsPageProps): React.ReactElem
       }
 
       setProgress(markCard(current.id, status));
-      setStats((value) => ({ ...value, [status]: value[status] + 1 }));
       move(1);
     },
     [current, move]
@@ -297,60 +321,103 @@ export default function Cards({ searchParams }: CardsPageProps): React.ReactElem
 
   return (
     <main className="mx-auto flex min-h-[calc(100dvh-2rem)] w-full min-w-0 flex-col gap-4 pb-4 pt-2 laptop:h-[calc(100dvh-2rem)] laptop:overflow-hidden">
-      <Appbar title="Flash Cards" iconSrc="/icon/Seedling.svg" rightButton={<div />} onBackClick={() => history.back()} />
-
-      <section className="flex min-h-0 flex-1">
-        <div className="relative flex min-h-0 flex-1 flex-col gap-4 rounded-lg border border-border bg-white p-4 shadow-sm mobile:p-5">
+      <Appbar
+        title="Flash Cards"
+        iconSrc="/icon/Seedling.svg"
+        rightButton={
           <button
             type="button"
             onClick={openDeckDialog}
-            className="absolute right-4 top-4 z-10 inline-flex size-11 items-center justify-center rounded-lg border border-border bg-white text-slate-700 shadow-sm transition-[border-color,background-color,transform] duration-150 hover:-translate-y-0.5 hover:border-primary/35 hover:bg-accent focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-primary/25"
+            className="inline-flex size-10 items-center justify-center rounded-full text-slate-700 transition-colors duration-150 hover:bg-white focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-primary/25"
             aria-label="Choose deck"
           >
             <SlidersHorizontal className="size-5" aria-hidden="true" />
           </button>
+        }
+        onBackClick={() => history.back()}
+      />
 
-          <div className="min-w-0 pr-14">
-            <p className="text-xs font-bold uppercase tracking-[0.12em] text-primary">{deckSubtitle}</p>
-            <h1 className="mt-1 text-2xl font-black tracking-tight text-slate-950 mobile:text-3xl">{deckTitle}</h1>
-            <p className="mt-1 text-sm text-slate-500">
-              {deck.length ? `Card ${currentIndex + 1} of ${deck.length} - ${remaining} remaining` : "No cards in this deck yet."}
-            </p>
-          </div>
-
+      <section className="flex min-h-0 flex-1">
+        <div className="relative flex min-h-0 flex-1 flex-col gap-4 rounded-lg border border-border bg-white p-4 shadow-sm mobile:p-5">
           <div className="rounded-full bg-slate-100" aria-hidden="true">
             <div className="h-2 rounded-full bg-primary transition-[width] duration-300" style={{ width: `${progressPercent}%` }} />
           </div>
 
           {current ? (
             <>
-              <article className="flex min-h-[360px] flex-1 items-center justify-center overflow-y-auto rounded-lg border border-slate-200 bg-slate-50 p-5 text-center customScrollBarStyle mobile:min-h-[420px] tablet:p-8 laptop:min-h-0">
-                <div className="w-full max-w-3xl">
-                  <div className="text-xs font-bold uppercase tracking-[0.14em] text-primary">
-                    {current.levelLabel} - Lesson {current.lessonNumber}
-                  </div>
-                  <h2 className="mt-4 text-3xl font-black leading-tight tracking-tight text-slate-950 mobile:text-4xl">{current.english_phrase}</h2>
-                  {showAnswer ? (
-                    <div className="mt-7 divide-y divide-slate-200 text-left">
-                      <AnswerBlock title="Meaning" rtl text={current.persian_phrase_meaning} />
-                      <AnswerBlock title="Definition" text={current.english_definition} />
-                      {current.examples?.[0] ? (
-                        <div className="pt-5">
-                          <div className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">Example</div>
-                          <p className="mt-2 text-sm font-semibold leading-6 text-slate-900 mobile:text-base">{current.examples[0].english_text}</p>
-                          <p dir="rtl" className="mt-2 font-iranYekan text-sm leading-7 text-slate-700">
-                            {current.examples[0].persian_meaning}
-                          </p>
+              <div className="relative flex min-h-[360px] flex-1 overflow-hidden rounded-lg bg-slate-100 p-2 mobile:min-h-[420px] tablet:p-4 laptop:min-h-0">
+                <div
+                  className="pointer-events-none absolute inset-x-8 bottom-4 top-8 rounded-lg border border-slate-200 bg-white/70 shadow-sm"
+                  aria-hidden="true"
+                />
+                <div
+                  className="pointer-events-none absolute inset-x-5 bottom-7 top-5 rounded-lg border border-slate-200 bg-white/85 shadow-md"
+                  aria-hidden="true"
+                />
+
+                <div className="relative z-10 flex min-h-0 w-full [perspective:1200px]">
+                  <AnimatePresence mode="wait" custom={transitionDirection} initial={false}>
+                    <motion.article
+                      key={current.id}
+                      custom={transitionDirection}
+                      variants={prefersReducedMotion ? reducedFlashCardVariants : flashCardVariants}
+                      initial="enter"
+                      animate="center"
+                      exit="exit"
+                      className="flex min-h-[344px] w-full flex-col overflow-hidden rounded-lg border border-slate-200 bg-white text-center shadow-[0_18px_45px_rgba(15,23,42,0.14)] mobile:min-h-[388px] laptop:min-h-0"
+                      style={{ transformStyle: "preserve-3d" }}
+                    >
+                      <div className="flex shrink-0 items-center justify-between gap-3 border-b border-dashed border-slate-200 bg-slate-50/80 px-4 py-3 text-xs font-black uppercase tracking-[0.12em] text-slate-500 mobile:px-5">
+                        <span className="truncate">
+                          {current.levelLabel} / Lesson {current.lessonNumber}
+                        </span>
+                        <span className="shrink-0 text-slate-700">
+                          {currentIndex + 1}/{deck.length}
+                        </span>
+                      </div>
+
+                      <div
+                        className={`flex min-h-0 flex-1 overflow-y-auto p-5 customScrollBarStyle tablet:p-8 ${
+                          showAnswer ? "items-start justify-start text-left" : "items-center justify-center text-center"
+                        }`}
+                      >
+                        <div className="mx-auto w-full max-w-3xl">
+                          <h2 className="text-3xl font-black leading-tight tracking-tight text-slate-950 mobile:text-4xl">
+                            {current.english_phrase}
+                          </h2>
+
+                          <AnimatePresence initial={false}>
+                            {showAnswer ? (
+                              <motion.div
+                                key="answer"
+                                variants={prefersReducedMotion ? reducedAnswerVariants : answerVariants}
+                                initial="hidden"
+                                animate="visible"
+                                exit="exit"
+                                className="mt-7 divide-y divide-slate-200 text-left"
+                              >
+                                <AnswerBlock title="Meaning" rtl text={current.persian_phrase_meaning} />
+                                <AnswerBlock title="Definition" text={current.english_definition} />
+                                {current.examples?.[0] ? (
+                                  <div className="pt-5">
+                                    <div className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">Example</div>
+                                    <p className="mt-2 text-sm font-semibold leading-6 text-slate-900 mobile:text-base">
+                                      {current.examples[0].english_text}
+                                    </p>
+                                    <p dir="rtl" className="mt-2 font-iranYekan text-sm leading-7 text-slate-700">
+                                      {current.examples[0].persian_meaning}
+                                    </p>
+                                  </div>
+                                ) : null}
+                              </motion.div>
+                            ) : null}
+                          </AnimatePresence>
                         </div>
-                      ) : null}
-                    </div>
-                  ) : (
-                    <p className="mx-auto mt-6 max-w-md text-sm leading-7 text-slate-500">
-                      Reveal the answer when you are ready, then mark the card for recall or review.
-                    </p>
-                  )}
+                      </div>
+                    </motion.article>
+                  </AnimatePresence>
                 </div>
-              </article>
+              </div>
 
               <div className="grid grid-cols-[0.9fr_1.2fr_0.9fr] gap-2 mobile:gap-3">
                 <Button type="button" size="lg" variant="outline" onClick={() => move(-1)} disabled={currentIndex === 0} className="px-2 mobile:px-4">
@@ -385,12 +452,6 @@ export default function Cards({ searchParams }: CardsPageProps): React.ReactElem
                   <ArrowRight className="size-4" />
                 </Button>
               </div>
-
-              <div className="flex flex-wrap items-center gap-2 text-xs font-bold text-slate-500">
-                <span className="rounded-lg bg-slate-100 px-3 py-1.5">Known {stats.known}</span>
-                <span className="rounded-lg bg-slate-100 px-3 py-1.5">Review {stats.review}</span>
-                <span className="rounded-lg bg-slate-100 px-3 py-1.5">Deck {activeDeckLabel}</span>
-              </div>
             </>
           ) : (
             <div className="flex min-h-[360px] flex-1 items-center justify-center rounded-lg border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
@@ -414,12 +475,10 @@ export default function Cards({ searchParams }: CardsPageProps): React.ReactElem
       </section>
 
       <DeckSelectionDialog
-        activeDeckLabel={activeDeckLabel}
         deckLength={deck.length}
         draftLesson={draftLesson}
         draftLevel={draftLevel}
         draftReviewMode={draftReviewMode}
-        knownInDeck={knownInDeck}
         onApply={applyDraftDeck}
         onDraftLessonChange={setDraftLesson}
         onDraftLevelChange={handleDraftLevelChange}
@@ -429,20 +488,16 @@ export default function Cards({ searchParams }: CardsPageProps): React.ReactElem
         onShuffleDeck={shuffleDeck}
         open={deckDialogOpen}
         reviewDeckLength={reviewDeck.length}
-        reviewInDeck={reviewInDeck}
-        sessionStats={stats}
       />
     </main>
   );
 }
 
 function DeckSelectionDialog({
-  activeDeckLabel,
   deckLength,
   draftLesson,
   draftLevel,
   draftReviewMode,
-  knownInDeck,
   onApply,
   onDraftLessonChange,
   onDraftLevelChange,
@@ -452,8 +507,6 @@ function DeckSelectionDialog({
   onShuffleDeck,
   open,
   reviewDeckLength,
-  reviewInDeck,
-  sessionStats,
 }: DeckSelectionDialogProps): React.ReactElement {
   const lessons = getLessons(draftLevel);
   const draftLevelMeta = LEVELS.find((level) => level.id === draftLevel) ?? LEVELS[0];
@@ -562,17 +615,7 @@ function DeckSelectionDialog({
               </div>
             )}
 
-            <div className="mt-5 grid gap-3 tablet:grid-cols-[1fr_1fr]">
-              <div className="rounded-lg border border-border bg-slate-50 p-4">
-                <p className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">Current deck</p>
-                <p className="mt-2 text-base font-black text-slate-950">{activeDeckLabel}</p>
-                <div className="mt-4 grid grid-cols-3 gap-2 text-center">
-                  <Metric label="Cards" value={deckLength} />
-                  <Metric label="Known" value={knownInDeck} />
-                  <Metric label="Review" value={reviewInDeck} />
-                </div>
-              </div>
-
+            <div className="mt-5">
               <div className="rounded-lg border border-border bg-slate-50 p-4">
                 <p className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">Session tools</p>
                 <div className="mt-3 grid grid-cols-2 gap-2">
@@ -584,10 +627,6 @@ function DeckSelectionDialog({
                     <RotateCcw className="size-4" />
                     Reset
                   </Button>
-                </div>
-                <div className="mt-3 grid grid-cols-2 gap-2 text-center">
-                  <Metric label="Known now" value={sessionStats.known} />
-                  <Metric label="Review now" value={sessionStats.review} />
                 </div>
               </div>
             </div>
@@ -617,15 +656,6 @@ function AnswerBlock({ title, text, rtl = false }: { title: string; text?: strin
       <p dir={rtl ? "rtl" : "ltr"} className={`${rtl ? "font-iranYekan text-right text-lg leading-8" : "text-sm leading-7 mobile:text-base"} mt-2 text-slate-800`}>
         {text || "No extra note for this idiom."}
       </p>
-    </div>
-  );
-}
-
-function Metric({ label, value }: { label: string; value: number }): React.ReactElement {
-  return (
-    <div className="rounded-lg border border-slate-200 bg-white px-3 py-2">
-      <div className="text-lg font-black text-slate-950">{value}</div>
-      <div className="text-xs font-semibold text-slate-500">{label}</div>
     </div>
   );
 }
