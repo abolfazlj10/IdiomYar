@@ -2,7 +2,7 @@
 
 import * as Dialog from "@radix-ui/react-dialog";
 import { AnimatePresence, motion, useReducedMotion, type PanInfo, type Variants } from "framer-motion";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent } from "react";
 import { ArrowLeft, ArrowRight, CheckCircle2, Eye, RotateCcw, Shuffle, SlidersHorizontal, Star, X } from "lucide-react";
 import Appbar from "@/components/appbar";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,13 @@ export type StudySearchParams = {
 type CardsPageProps = {
   searchParams?: StudySearchParams;
 };
+
+type StudyPosition = {
+  level: LevelId;
+  lesson: number;
+};
+
+type DeckPlacement = "start" | "end";
 
 type DeckSelectionDialogProps = {
   deckLength: number;
@@ -73,6 +80,8 @@ const reducedFlashCardVariants: Variants = {
 
 const SWIPE_DISTANCE = 90;
 const SWIPE_VELOCITY = 520;
+const DRAG_CLICK_SUPPRESSION_MS = 700;
+const POINTER_DRAG_TOLERANCE = 8;
 
 const levelDialogStyles = {
   elementary: {
@@ -95,6 +104,71 @@ function getParam(value: string | string[] | undefined): string | null {
 
 function getFirstLessonNumber(level: LevelId): number {
   return getLessons(level)[0]?.lesson_number ?? 1;
+}
+
+function getNextLessonPosition(level: LevelId, lessonNumber: number): StudyPosition | null {
+  const levelIndex = LEVELS.findIndex((item) => item.id === level);
+
+  if (levelIndex < 0) {
+    return null;
+  }
+
+  const lessons = getLessons(level);
+  const lessonIndex = lessons.findIndex((lesson) => lesson.lesson_number === lessonNumber);
+  const nextLesson = lessonIndex >= 0 ? lessons[lessonIndex + 1] : undefined;
+
+  if (nextLesson) {
+    return {
+      level,
+      lesson: nextLesson.lesson_number,
+    };
+  }
+
+  for (const nextLevel of LEVELS.slice(levelIndex + 1)) {
+    const firstLesson = getLessons(nextLevel.id)[0];
+
+    if (firstLesson) {
+      return {
+        level: nextLevel.id,
+        lesson: firstLesson.lesson_number,
+      };
+    }
+  }
+
+  return null;
+}
+
+function getPreviousLessonPosition(level: LevelId, lessonNumber: number): StudyPosition | null {
+  const levelIndex = LEVELS.findIndex((item) => item.id === level);
+
+  if (levelIndex < 0) {
+    return null;
+  }
+
+  const lessons = getLessons(level);
+  const lessonIndex = lessons.findIndex((lesson) => lesson.lesson_number === lessonNumber);
+  const previousLesson = lessonIndex > 0 ? lessons[lessonIndex - 1] : undefined;
+
+  if (previousLesson) {
+    return {
+      level,
+      lesson: previousLesson.lesson_number,
+    };
+  }
+
+  for (let previousLevelIndex = levelIndex - 1; previousLevelIndex >= 0; previousLevelIndex -= 1) {
+    const previousLevel = LEVELS[previousLevelIndex];
+    const lastLesson = getLessons(previousLevel.id).at(-1);
+
+    if (lastLesson) {
+      return {
+        level: previousLevel.id,
+        lesson: lastLesson.lesson_number,
+      };
+    }
+  }
+
+  return null;
 }
 
 function parseLevelParam(value: string | null): LevelId | null {
@@ -165,6 +239,12 @@ export default function Cards({ searchParams }: CardsPageProps): React.ReactElem
   const [deckOrder, setDeckOrder] = useState<string[]>([]);
   const [reviewMode, setReviewMode] = useState(requestedModeParam === "review");
   const [transitionDirection, setTransitionDirection] = useState(0);
+  const nextDeckPlacementRef = useRef<DeckPlacement>("start");
+  const suppressRevealClickRef = useRef(false);
+  const suppressRevealResetRef = useRef<number | null>(null);
+  const nextDeckDirectionRef = useRef(0);
+  const pointerStartRef = useRef<{ x: number; y: number } | null>(null);
+  const pointerMovedRef = useRef(false);
 
   const normalDeck = useMemo(() => getIdiomsForLesson(activeLevel, activeLesson), [activeLevel, activeLesson]);
   const reviewDeck = useMemo(() => getAllIdioms().filter((idiom) => progress.review[idiom.id]), [progress.review]);
@@ -180,9 +260,9 @@ export default function Cards({ searchParams }: CardsPageProps): React.ReactElem
   const current = deck[currentIndex];
   const progressPercent = deck.length ? Math.round(((currentIndex + 1) / deck.length) * 100) : 0;
 
-  const resetSession = useCallback((): void => {
-    setTransitionDirection(0);
-    setCurrentIndex(0);
+  const resetSession = useCallback((options: { direction?: number; index?: number } = {}): void => {
+    setTransitionDirection(options.direction ?? 0);
+    setCurrentIndex(options.index ?? 0);
     setShowAnswer(false);
   }, []);
 
@@ -212,9 +292,41 @@ export default function Cards({ searchParams }: CardsPageProps): React.ReactElem
   }, [requestedModeParam, requestedPosition, resetSession]);
 
   useEffect(() => {
-    setDeckOrder(sourceDeck.map((idiom) => idiom.id));
-    resetSession();
+    const nextDeckOrder = sourceDeck.map((idiom) => idiom.id);
+    const shouldStartAtEnd = nextDeckPlacementRef.current === "end";
+    const direction = nextDeckDirectionRef.current;
+
+    setDeckOrder(nextDeckOrder);
+    resetSession({
+      direction,
+      index: shouldStartAtEnd ? Math.max(nextDeckOrder.length - 1, 0) : 0,
+    });
+    nextDeckPlacementRef.current = "start";
+    nextDeckDirectionRef.current = 0;
   }, [sourceDeck, resetSession]);
+
+  const isFirstCard = deck.length > 0 && currentIndex <= 0;
+  const isLastCard = deck.length > 0 && currentIndex >= deck.length - 1;
+  const previousLessonPosition = useMemo(
+    () => (reviewMode ? null : getPreviousLessonPosition(activeLevel, activeLesson)),
+    [activeLesson, activeLevel, reviewMode]
+  );
+  const nextLessonPosition = useMemo(
+    () => (reviewMode ? null : getNextLessonPosition(activeLevel, activeLesson)),
+    [activeLesson, activeLevel, reviewMode]
+  );
+  const previousLessonLevelLabel = previousLessonPosition ? LEVELS.find((level) => level.id === previousLessonPosition.level)?.label ?? "" : "";
+  const previousLessonAriaLabel = previousLessonPosition
+    ? `Go to ${previousLessonLevelLabel} lesson ${previousLessonPosition.lesson}`.trim()
+    : reviewMode
+      ? "Finish review and choose another deck"
+      : "Choose another deck";
+  const nextLessonLevelLabel = nextLessonPosition ? LEVELS.find((level) => level.id === nextLessonPosition.level)?.label ?? "" : "";
+  const nextLessonAriaLabel = nextLessonPosition
+    ? `Go to ${nextLessonLevelLabel} lesson ${nextLessonPosition.lesson}`.trim()
+    : reviewMode
+      ? "Finish review and choose another deck"
+      : "Choose another deck";
 
   const move = useCallback(
     (direction: number): void => {
@@ -229,6 +341,136 @@ export default function Cards({ searchParams }: CardsPageProps): React.ReactElem
       setCurrentIndex(nextIndex);
     },
     [currentIndex, deck.length]
+  );
+
+  const queueRevealClickSuppression = useCallback((duration = DRAG_CLICK_SUPPRESSION_MS): void => {
+    suppressRevealClickRef.current = true;
+
+    if (suppressRevealResetRef.current !== null) {
+      window.clearTimeout(suppressRevealResetRef.current);
+    }
+
+    suppressRevealResetRef.current = window.setTimeout(() => {
+      suppressRevealClickRef.current = false;
+      suppressRevealResetRef.current = null;
+    }, duration);
+  }, []);
+
+  const revealCurrentCard = useCallback((): void => {
+    if (suppressRevealClickRef.current) {
+      return;
+    }
+
+    setShowAnswer(true);
+  }, []);
+
+  const handleCardPointerDown = useCallback((event: PointerEvent<HTMLElement>): void => {
+    pointerStartRef.current = {
+      x: event.clientX,
+      y: event.clientY,
+    };
+    pointerMovedRef.current = false;
+  }, []);
+
+  const handleCardPointerMove = useCallback(
+    (event: PointerEvent<HTMLElement>): void => {
+      const start = pointerStartRef.current;
+
+      if (!start) {
+        return;
+      }
+
+      const distance = Math.hypot(event.clientX - start.x, event.clientY - start.y);
+
+      if (distance > POINTER_DRAG_TOLERANCE) {
+        pointerMovedRef.current = true;
+        queueRevealClickSuppression();
+      }
+    },
+    [queueRevealClickSuppression]
+  );
+
+  const handleCardPointerUp = useCallback((): void => {
+    if (pointerMovedRef.current) {
+      queueRevealClickSuppression();
+    }
+
+    pointerStartRef.current = null;
+    pointerMovedRef.current = false;
+  }, [queueRevealClickSuppression]);
+
+  useEffect(() => {
+    return () => {
+      if (suppressRevealResetRef.current !== null) {
+        window.clearTimeout(suppressRevealResetRef.current);
+      }
+    };
+  }, []);
+
+  const goToLesson = useCallback(
+    (position: StudyPosition, direction: number, placement: DeckPlacement): void => {
+      nextDeckPlacementRef.current = placement;
+      nextDeckDirectionRef.current = direction;
+      setTransitionDirection(direction);
+      setReviewMode(false);
+      setDraftReviewMode(false);
+      setActiveLevel(position.level);
+      setActiveLesson(position.lesson);
+      setDraftLevel(position.level);
+      setDraftLesson(position.lesson);
+    },
+    []
+  );
+
+  const openDeckDialog = useCallback((): void => {
+    setDraftLevel(activeLevel);
+    setDraftLesson(activeLesson);
+    setDraftReviewMode(reviewMode);
+    setDeckDialogOpen(true);
+  }, [activeLesson, activeLevel, reviewMode]);
+
+  const advance = useCallback((): void => {
+    if (currentIndex < deck.length - 1) {
+      move(1);
+      return;
+    }
+
+    if (nextLessonPosition) {
+      goToLesson(nextLessonPosition, 1, "start");
+      return;
+    }
+
+    openDeckDialog();
+  }, [currentIndex, deck.length, goToLesson, move, nextLessonPosition, openDeckDialog]);
+
+  const retreat = useCallback((): void => {
+    if (currentIndex > 0) {
+      move(-1);
+      return;
+    }
+
+    if (previousLessonPosition) {
+      goToLesson(previousLessonPosition, -1, "end");
+      return;
+    }
+
+    openDeckDialog();
+  }, [currentIndex, goToLesson, move, openDeckDialog, previousLessonPosition]);
+
+  const handleDragEnd = useCallback(
+    (info: PanInfo): void => {
+      queueRevealClickSuppression();
+
+      if (info.offset.x <= -SWIPE_DISTANCE || info.velocity.x <= -SWIPE_VELOCITY) {
+        advance();
+        return;
+      }
+
+      if (info.offset.x >= SWIPE_DISTANCE || info.velocity.x >= SWIPE_VELOCITY) {
+        retreat();
+      }
+    },
+    [advance, queueRevealClickSuppression, retreat]
   );
 
   const shuffleDeck = useCallback((): void => {
@@ -248,17 +490,16 @@ export default function Cards({ searchParams }: CardsPageProps): React.ReactElem
       }
 
       setProgress(markCard(current.id, status));
+
+      if (currentIndex >= deck.length - 1 && nextLessonPosition) {
+        goToLesson(nextLessonPosition, 1, "start");
+        return;
+      }
+
       move(1);
     },
-    [current, move]
+    [current, currentIndex, deck.length, goToLesson, move, nextLessonPosition]
   );
-
-  const openDeckDialog = (): void => {
-    setDraftLevel(activeLevel);
-    setDraftLesson(activeLesson);
-    setDraftReviewMode(reviewMode);
-    setDeckDialogOpen(true);
-  };
 
   const handleDeckDialogOpenChange = (open: boolean): void => {
     setDeckDialogOpen(open);
@@ -301,23 +542,23 @@ export default function Cards({ searchParams }: CardsPageProps): React.ReactElem
 
       if (event.key === "ArrowLeft") {
         event.preventDefault();
-        move(-1);
+        retreat();
       }
 
       if (event.key === "ArrowRight") {
         event.preventDefault();
-        move(1);
+        advance();
       }
 
       if ((event.key === " " || event.key === "Enter") && !showAnswer) {
         event.preventDefault();
-        setShowAnswer(true);
+        revealCurrentCard();
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [current, deckDialogOpen, move, showAnswer]);
+  }, [advance, current, deckDialogOpen, retreat, revealCurrentCard, showAnswer]);
 
   return (
     <main className="mx-auto flex min-h-[calc(100dvh-2rem)] w-full min-w-0 flex-col gap-4 pb-4 pt-2 laptop:h-[calc(100dvh-2rem)] laptop:overflow-hidden">
@@ -338,20 +579,20 @@ export default function Cards({ searchParams }: CardsPageProps): React.ReactElem
       />
 
       <section className="flex min-h-0 flex-1">
-        <div className="relative flex min-h-0 flex-1 flex-col gap-4 rounded-lg border border-border bg-white p-4 shadow-sm mobile:p-5">
-          <div className="rounded-full bg-slate-100" aria-hidden="true">
+        <div className="relative flex min-h-0 flex-1 flex-col gap-4">
+          <div className="rounded-full bg-slate-200/70" aria-hidden="true">
             <div className="h-2 rounded-full bg-primary transition-[width] duration-300" style={{ width: `${progressPercent}%` }} />
           </div>
 
           {current ? (
             <>
-              <div className="relative flex min-h-[360px] flex-1 overflow-hidden rounded-lg bg-slate-100 p-2 mobile:min-h-[420px] tablet:p-4 laptop:min-h-0">
+              <div className="relative flex min-h-[390px] flex-1 overflow-hidden rounded-lg border border-slate-200/80 bg-[linear-gradient(135deg,#F8FAFC_0%,#EEF8F1_52%,#FFF7E3_100%)] p-3 shadow-sm mobile:min-h-[460px] tablet:p-5 laptop:min-h-0">
                 <div
-                  className="pointer-events-none absolute inset-x-8 bottom-4 top-8 rounded-lg border border-slate-200 bg-white/70 shadow-sm"
+                  className="pointer-events-none absolute inset-x-8 bottom-5 top-9 -rotate-1 rounded-lg border border-slate-200 bg-white/65 shadow-sm"
                   aria-hidden="true"
                 />
                 <div
-                  className="pointer-events-none absolute inset-x-5 bottom-7 top-5 rounded-lg border border-slate-200 bg-white/85 shadow-md"
+                  className="pointer-events-none absolute inset-x-5 bottom-8 top-5 rotate-1 rounded-lg border border-slate-200 bg-white/80 shadow-md"
                   aria-hidden="true"
                 />
 
@@ -364,92 +605,166 @@ export default function Cards({ searchParams }: CardsPageProps): React.ReactElem
                       initial="enter"
                       animate="center"
                       exit="exit"
-                      className="flex min-h-[344px] w-full flex-col overflow-hidden rounded-lg border border-slate-200 bg-white text-center shadow-[0_18px_45px_rgba(15,23,42,0.14)] mobile:min-h-[388px] laptop:min-h-0"
+                      drag={prefersReducedMotion ? false : "x"}
+                      dragConstraints={{ left: 0, right: 0 }}
+                      dragElastic={0.18}
+                      dragSnapToOrigin
+                      onDragStart={() => queueRevealClickSuppression()}
+                      onDragEnd={(_, info) => handleDragEnd(info)}
+                      onPointerDownCapture={handleCardPointerDown}
+                      onPointerMoveCapture={handleCardPointerMove}
+                      onPointerUpCapture={handleCardPointerUp}
+                      onPointerCancelCapture={handleCardPointerUp}
+                      whileDrag={prefersReducedMotion ? undefined : { cursor: "grabbing", scale: 0.985 }}
+                      data-card-state={showAnswer ? "answer" : "prompt"}
+                      className="flex min-h-[366px] w-full cursor-grab flex-col overflow-hidden rounded-lg border border-slate-200 bg-white text-center shadow-[0_22px_60px_rgba(15,23,42,0.18)] mobile:min-h-[420px] laptop:min-h-0"
                       style={{ transformStyle: "preserve-3d" }}
                     >
                       <div className="flex shrink-0 items-center justify-between gap-3 border-b border-dashed border-slate-200 bg-slate-50/80 px-4 py-3 text-xs font-black uppercase tracking-[0.12em] text-slate-500 mobile:px-5">
-                        <span className="truncate">
-                          {current.levelLabel} / Lesson {current.lessonNumber}
-                        </span>
+                        <div className="flex min-w-0 items-center gap-2">
+                          <span className="truncate">
+                            {current.levelLabel} / Lesson {current.lessonNumber}
+                          </span>
+                          <span className={`shrink-0 rounded-md px-2 py-1 text-[10px] tracking-[0.1em] ${showAnswer ? "bg-emerald-50 text-emerald-700" : "bg-slate-200/80 text-slate-600"}`}>
+                            {showAnswer ? "Answer" : "Prompt"}
+                          </span>
+                        </div>
                         <span className="shrink-0 text-slate-700">
                           {currentIndex + 1}/{deck.length}
                         </span>
                       </div>
 
-                      <div
-                        className={`flex min-h-0 flex-1 overflow-y-auto p-5 customScrollBarStyle tablet:p-8 ${
-                          showAnswer ? "items-start justify-start text-left" : "items-center justify-center text-center"
-                        }`}
+                      <motion.div
+                        className="relative min-h-0 flex-1 [transform-style:preserve-3d]"
+                        animate={{ rotateY: showAnswer ? 180 : 0 }}
+                        transition={
+                          prefersReducedMotion
+                            ? { duration: 0.12 }
+                            : { duration: 0.42, ease: [0.22, 1, 0.36, 1] }
+                        }
                       >
-                        <div className="mx-auto w-full max-w-3xl">
-                          <h2 className="text-3xl font-black leading-tight tracking-tight text-slate-950 mobile:text-4xl">
+                        <div
+                          role={showAnswer ? undefined : "button"}
+                          onClick={revealCurrentCard}
+                          aria-label={`Reveal answer for ${current.english_phrase}`}
+                          aria-hidden={showAnswer}
+                          tabIndex={showAnswer ? -1 : 0}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter" || event.key === " ") {
+                              event.preventDefault();
+                              revealCurrentCard();
+                            }
+                          }}
+                          className={`absolute inset-0 flex cursor-pointer items-center justify-center p-5 text-center focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-inset focus-visible:ring-primary/25 tablet:p-8 [backface-visibility:hidden] ${
+                            showAnswer ? "pointer-events-none" : ""
+                          }`}
+                        >
+                          <h2 className="max-w-3xl text-3xl font-black leading-tight tracking-tight text-slate-950 mobile:text-4xl">
                             {current.english_phrase}
                           </h2>
-
-                          <AnimatePresence initial={false}>
-                            {showAnswer ? (
-                              <motion.div
-                                key="answer"
-                                variants={prefersReducedMotion ? reducedAnswerVariants : answerVariants}
-                                initial="hidden"
-                                animate="visible"
-                                exit="exit"
-                                className="mt-7 divide-y divide-slate-200 text-left"
-                              >
-                                <AnswerBlock title="Meaning" rtl text={current.persian_phrase_meaning} />
-                                <AnswerBlock title="Definition" text={current.english_definition} />
-                                {current.examples?.[0] ? (
-                                  <div className="pt-5">
-                                    <div className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">Example</div>
-                                    <p className="mt-2 text-sm font-semibold leading-6 text-slate-900 mobile:text-base">
-                                      {current.examples[0].english_text}
-                                    </p>
-                                    <p dir="rtl" className="mt-2 font-iranYekan text-sm leading-7 text-slate-700">
-                                      {current.examples[0].persian_meaning}
-                                    </p>
-                                  </div>
-                                ) : null}
-                              </motion.div>
-                            ) : null}
-                          </AnimatePresence>
                         </div>
-                      </div>
+
+                        <div
+                          aria-hidden={!showAnswer}
+                          className="absolute inset-0 overflow-y-auto p-5 text-left customScrollBarStyle tablet:p-8 [backface-visibility:hidden] [transform:rotateY(180deg)]"
+                        >
+                          <div className="mx-auto w-full max-w-3xl">
+                            <h2 className="text-3xl font-black leading-tight tracking-tight text-slate-950 mobile:text-4xl">
+                              {current.english_phrase}
+                            </h2>
+
+                            <div className="mt-7 divide-y divide-slate-200">
+                              <AnswerBlock title="Meaning" rtl text={current.persian_phrase_meaning} />
+                              <AnswerBlock title="Definition" text={current.english_definition} />
+                              {current.examples?.[0] ? (
+                                <div className="pt-5">
+                                  <div className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">Example</div>
+                                  <p className="mt-2 text-sm font-semibold leading-6 text-slate-900 mobile:text-base">
+                                    {current.examples[0].english_text}
+                                  </p>
+                                  <p dir="rtl" className="mt-2 font-iranYekan text-sm leading-7 text-slate-700">
+                                    {current.examples[0].persian_meaning}
+                                  </p>
+                                </div>
+                              ) : null}
+                            </div>
+
+                            {showAnswer ? (
+                              <div className="mt-6 grid grid-cols-2 gap-2 border-t border-slate-200 pt-5 mobile:gap-3">
+                                <Button type="button" size="lg" variant="review" onClick={() => mark("review")} className="px-2 mobile:px-4">
+                                  <Star className="size-4" />
+                                  <span className="hidden mobile:inline">Review Again</span>
+                                  <span className="mobile:hidden">Review</span>
+                                </Button>
+                                <Button type="button" size="lg" variant="success" onClick={() => mark("known")} className="px-2 mobile:px-4">
+                                  <CheckCircle2 className="size-4" />
+                                  <span className="hidden mobile:inline">Know It</span>
+                                  <span className="mobile:hidden">Know</span>
+                                </Button>
+                              </div>
+                            ) : null}
+                          </div>
+                        </div>
+                      </motion.div>
                     </motion.article>
                   </AnimatePresence>
                 </div>
               </div>
 
-              <div className="grid grid-cols-[0.9fr_1.2fr_0.9fr] gap-2 mobile:gap-3">
-                <Button type="button" size="lg" variant="outline" onClick={() => move(-1)} disabled={currentIndex === 0} className="px-2 mobile:px-4">
-                  <ArrowLeft className="size-4" />
-                  <span className="hidden mobile:inline">Previous</span>
-                  <span className="mobile:hidden">Prev</span>
+              <div className={`grid gap-2 mobile:gap-3 ${showAnswer ? "grid-cols-2" : "grid-cols-[0.9fr_1.2fr_0.9fr]"}`}>
+                <Button type="button" size="lg" variant="outline" onClick={retreat} className="min-w-0 px-2 mobile:px-4" aria-label={isFirstCard ? previousLessonAriaLabel : "Previous card"}>
+                  {isFirstCard ? (
+                    previousLessonPosition ? (
+                      <>
+                        <ArrowLeft className="size-4" />
+                        <span className="hidden tablet:inline">Previous lesson</span>
+                        <span className="tablet:hidden">Lesson {previousLessonPosition.lesson}</span>
+                      </>
+                    ) : (
+                      <>
+                        <SlidersHorizontal className="size-4" />
+                        <span className="hidden tablet:inline">Choose deck</span>
+                        <span className="tablet:hidden">Decks</span>
+                      </>
+                    )
+                  ) : (
+                    <>
+                      <ArrowLeft className="size-4" />
+                      <span className="hidden mobile:inline">Previous</span>
+                      <span className="mobile:hidden">Prev</span>
+                    </>
+                  )}
                 </Button>
 
-                {showAnswer ? (
-                  <div className="grid min-w-0 grid-cols-2 gap-2">
-                    <Button type="button" size="lg" variant="review" onClick={() => mark("review")} className="px-2 mobile:px-4">
-                      <Star className="size-4" />
-                      <span className="hidden tablet:inline">Review Again</span>
-                      <span className="tablet:hidden">Review</span>
-                    </Button>
-                    <Button type="button" size="lg" variant="success" onClick={() => mark("known")} className="px-2 mobile:px-4">
-                      <CheckCircle2 className="size-4" />
-                      <span className="hidden tablet:inline">Know It</span>
-                      <span className="tablet:hidden">Know</span>
-                    </Button>
-                  </div>
-                ) : (
-                  <Button type="button" size="lg" onClick={() => setShowAnswer(true)} className="px-2 mobile:px-4">
+                {!showAnswer ? (
+                  <Button type="button" size="lg" onClick={revealCurrentCard} className="px-2 mobile:px-4">
                     <Eye className="size-4" />
                     <span className="hidden mobile:inline">Reveal answer</span>
                     <span className="mobile:hidden">Reveal</span>
                   </Button>
-                )}
+                ) : null}
 
-                <Button type="button" size="lg" onClick={() => move(1)} disabled={currentIndex >= deck.length - 1} className="px-2 mobile:px-4">
-                  <span>Next</span>
-                  <ArrowRight className="size-4" />
+                <Button type="button" size="lg" onClick={advance} className="min-w-0 px-2 mobile:px-4" aria-label={isLastCard ? nextLessonAriaLabel : "Next card"}>
+                  {isLastCard ? (
+                    nextLessonPosition ? (
+                      <>
+                        <span className="hidden tablet:inline">Next lesson</span>
+                        <span className="tablet:hidden">Lesson {nextLessonPosition.lesson}</span>
+                        <ArrowRight className="size-4" />
+                      </>
+                    ) : (
+                      <>
+                        <SlidersHorizontal className="size-4" />
+                        <span className="hidden tablet:inline">Choose deck</span>
+                        <span className="tablet:hidden">Decks</span>
+                      </>
+                    )
+                  ) : (
+                    <>
+                      <span>Next</span>
+                      <ArrowRight className="size-4" />
+                    </>
+                  )}
                 </Button>
               </div>
             </>
