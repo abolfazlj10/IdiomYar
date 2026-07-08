@@ -478,42 +478,38 @@
               ]
             },
             {
-              "english_phrase": "to get along",
-              "persian_phrase_meaning": "پیشرفت کردن؛ زندگی کردن (از نظر سلامتی)",
-              "english_definition": "to make progress; to manage to live in a certain state of health",
-              "persian_definition_meaning": "پیشرفت کردن؛ مدیریت کردن زندگی در یک وضعیت سلامتی خاص",
+              "english_phrase": "to watch one's step",
+              "persian_phrase_meaning": "مراقب بودن، مرافب راه رفتن بودن",
+              "english_definition": "to walk or move cautiously, to be careful when walking or moving",
+              "persian_definition_meaning": "مراقب بودن هنگام قدم زدن یا راه رفتن، حواس جمع کردن",
               "english_explanation": null,
               "persian_explanation_meaning": null,
               "examples": [
                 {
-                  "english_text": "Juan is getting along very well in his English studies.",
-                  "persian_meaning": "خوان در مطالعات انگلیسی خود بسیار خوب پیشرفت می‌کند."
+                  "english_text": "You should watch your step when you hike on taht trail; it's very steep and dangerous.",
+                  "persian_meaning": "باید مراقب قدم‌هات باشی وقتی کوهنوردی میکنی، خیلی شیب دار و خطرناکه."
                 },
                 {
-                  "english_text": "How is Mr. Richards getting along after his long illness?",
-                  "persian_meaning": "آقای ریچاردز بعد از بیماری طولانی‌اش چگونه پیش می‌رود (حالش چطور است)؟"
+                  "english_text": "The workers put up a sign that said 'Watch Your Step!' no warn people about the hole in the sidewalk",
+                  "persian_meaning": "کارگران تابلویی نصب کردند که نوشته بود احتیاط کنید، به منظور هشدار در مورد چاله در پیاده‌رو."
                 }
               ]
             },
             {
-              "english_phrase": "hard of hearing",
-              "persian_phrase_meaning": "کم‌شنوا",
-              "english_definition": "partially deaf, not able to hear well",
-              "persian_definition_meaning": "تا حدی ناشنوا، خوب نشنیدن",
+              "english_phrase": "to watch what one says/does",
+              "persian_phrase_meaning": "مراقب حرف زدن و رفتار‌ها بودن",
+              "english_definition": "to speak or behave carefully",
+              "persian_definition_meaning": "مراقب بودن در هنگام صحبت کردن یا مراقب رفتار کردن بودن",
               "english_explanation": null,
               "persian_explanation_meaning": null,
               "examples": [
                 {
-                  "english_text": "You'll have to speak a little louder. Mrs. Evans is hard of hearing.",
-                  "persian_meaning": "باید کمی بلندتر صحبت کنی. خانم ایوانز کم‌شنوا است."
+                  "english_text": "Watch what you say about Oliver's weight. He's very sensitive about it.",
+                  "persian_meaning": "مراقب حرف زدنت در مورد وزن الیویرا باش اون خیلی حساسه."
                 },
                 {
-                  "english_text": "Please don't shout. I'm not hard of hearing.",
-                  "persian_meaning": "لطفاً فریاد نزن. من کم‌شنوا نیستم."
-                },
-                {
-                  "english_text": "Listening to loud music too much can make you hard of hearing.",
-                  "persian_meaning": "گوش دادن زیاد به موسیقی بلند می‌تواند باعث کم شنوایی شما شود."
+                  "english_text": "If vasil doesn't watch what he does, he's going to get himslef into trouble at work.",
+                  "persian_meaning": "اگه وسیل مراقب کارهاش نباشه اون اون خودشو توی دردسر میندازه در کارش."
                 }
               ]
             },
