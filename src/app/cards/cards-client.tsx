@@ -1,10 +1,10 @@
 "use client";
 
-import * as Dialog from "@radix-ui/react-dialog";
 import { AnimatePresence, motion, useReducedMotion, type PanInfo, type Variants } from "framer-motion";
-import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent } from "react";
-import { ArrowLeft, ArrowRight, Eye, EyeOff, RotateCcw, Shuffle, SlidersHorizontal, Star, X } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent, type WheelEvent as ReactWheelEvent } from "react";
+import { ArrowLeft, ArrowRight, Eye, EyeOff, SlidersHorizontal, Star } from "lucide-react";
 import Appbar from "@/components/appbar";
+import { LessonPickerModal, type LessonPickerSelection } from "@/components/FlashCards/LessonPickerModal";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { getAllIdioms, getIdiomsForLesson, getLessons, LEVELS, type IdiomEntry } from "@/lib/idioms";
@@ -35,22 +35,6 @@ type ReviewSaveCue = {
   id: number;
 };
 
-type DeckSelectionDialogProps = {
-  deckLength: number;
-  draftLesson: number;
-  draftLevel: LevelId;
-  draftReviewMode: boolean;
-  onApply: () => void;
-  onDraftLessonChange: (lesson: number) => void;
-  onDraftLevelChange: (level: LevelId) => void;
-  onDraftReviewModeChange: (reviewMode: boolean) => void;
-  onOpenChange: (open: boolean) => void;
-  onResetDeck: () => void;
-  onShuffleDeck: () => void;
-  open: boolean;
-  reviewDeckLength: number;
-};
-
 type DesktopPreviewCardProps = {
   card?: IdiomEntry;
   className?: string;
@@ -59,9 +43,6 @@ type DesktopPreviewCardProps = {
   onSelect: (offset: number) => void;
   targetIndex: number;
 };
-
-const modeButton =
-  "min-h-11 rounded-lg border px-3 py-2 text-sm font-black transition-colors duration-150 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-primary/25";
 
 const flashCardVariants: Variants = {
   enter: (direction: number) => ({
@@ -97,21 +78,11 @@ const SWIPE_VELOCITY = 520;
 const DRAG_CLICK_SUPPRESSION_MS = 700;
 const POINTER_DRAG_TOLERANCE = 8;
 const LONG_PRESS_REVIEW_MS = 1500;
-
-const levelDialogStyles = {
-  elementary: {
-    active: "border-[#F5C94D] bg-[#FFF7D8] text-[#5F4600]",
-    dot: "bg-[#FFD84D]",
-  },
-  intermediate: {
-    active: "border-[#99DDFB] bg-[#E9F8FF] text-[#064B6D]",
-    dot: "bg-[#62C7FF]",
-  },
-  advanced: {
-    active: "border-[#FFC0B2] bg-[#FFF0EB] text-[#8A2D18]",
-    dot: "bg-[#FF6542]",
-  },
-} satisfies Record<LevelId, { active: string; dot: string }>;
+const WHEEL_NAVIGATION_THRESHOLD = 24;
+const WHEEL_NAVIGATION_COOLDOWN_MS = 240;
+const WHEEL_GESTURE_RESET_MS = 100;
+const WHEEL_HORIZONTAL_INTENT_MIN = 4;
+const WHEEL_HORIZONTAL_DOMINANCE = 0.65;
 
 function getParam(value: string | string[] | undefined): string | null {
   return Array.isArray(value) ? value[0] ?? null : value ?? null;
@@ -200,17 +171,37 @@ function parseLessonParam(level: LevelId, value: string | null): number | null {
   return getLessons(level).some((lesson) => lesson.lesson_number === lessonNumber) ? lessonNumber : null;
 }
 
-function getRequestedStudyPosition(searchParams?: StudySearchParams): { level: LevelId; lesson: number } | null {
-  const level = parseLevelParam(getParam(searchParams?.level));
+function findLessonPosition(value: string | null): StudyPosition | null {
+  const lessonNumber = Number(value);
 
-  if (!level) {
+  if (!Number.isInteger(lessonNumber)) {
     return null;
   }
 
-  return {
-    level,
-    lesson: parseLessonParam(level, getParam(searchParams?.lesson)) ?? getFirstLessonNumber(level),
-  };
+  for (const level of LEVELS) {
+    if (getLessons(level.id).some((lesson) => lesson.lesson_number === lessonNumber)) {
+      return {
+        level: level.id,
+        lesson: lessonNumber,
+      };
+    }
+  }
+
+  return null;
+}
+
+function getRequestedStudyPosition(searchParams?: StudySearchParams): { level: LevelId; lesson: number } | null {
+  const level = parseLevelParam(getParam(searchParams?.level));
+  const lessonParam = getParam(searchParams?.lesson);
+
+  if (level) {
+    return {
+      level,
+      lesson: parseLessonParam(level, lessonParam) ?? getFirstLessonNumber(level),
+    };
+  }
+
+  return findLessonPosition(lessonParam);
 }
 
 function rememberDeckSelectorSeen(): void {
@@ -246,7 +237,6 @@ export default function Cards({ searchParams }: CardsPageProps): React.ReactElem
   const [activeLesson, setActiveLesson] = useState<number>(initialLesson);
   const [draftLevel, setDraftLevel] = useState<LevelId>(initialLevel);
   const [draftLesson, setDraftLesson] = useState<number>(initialLesson);
-  const [draftReviewMode, setDraftReviewMode] = useState(requestedModeParam === "review");
   const [progress, setProgress] = useState<StudyProgress>({ studied: {}, known: {}, review: {} });
   const [showAnswer, setShowAnswer] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -262,6 +252,9 @@ export default function Cards({ searchParams }: CardsPageProps): React.ReactElem
   const nextDeckDirectionRef = useRef(0);
   const pointerStartRef = useRef<{ x: number; y: number } | null>(null);
   const pointerMovedRef = useRef(false);
+  const wheelIntentRef = useRef(0);
+  const wheelGestureResetRef = useRef<number | null>(null);
+  const wheelNavigationCooldownRef = useRef<number | null>(null);
   const nextPressTimerRef = useRef<number | null>(null);
   const nextPressActiveRef = useRef(false);
   const nextPressCompletedRef = useRef(false);
@@ -292,7 +285,6 @@ export default function Cards({ searchParams }: CardsPageProps): React.ReactElem
   useEffect(() => {
     setProgress(getProgress());
     setReviewMode(requestedModeParam === "review");
-    setDraftReviewMode(requestedModeParam === "review");
 
     if (!hasExplicitStudyQuery && !hasSeenDeckSelector()) {
       setDeckDialogOpen(true);
@@ -310,7 +302,6 @@ export default function Cards({ searchParams }: CardsPageProps): React.ReactElem
     setActiveLesson(requestedPosition.lesson);
     setDraftLevel(requestedPosition.level);
     setDraftLesson(requestedPosition.lesson);
-    setDraftReviewMode(requestedModeParam === "review");
     resetSession();
   }, [requestedModeParam, requestedPosition, resetSession]);
 
@@ -379,6 +370,14 @@ export default function Cards({ searchParams }: CardsPageProps): React.ReactElem
     }, duration);
   }, []);
 
+  const toggleCurrentCardAnswer = useCallback((): void => {
+    if (suppressRevealClickRef.current) {
+      return;
+    }
+
+    setShowAnswer((isShowing) => !isShowing);
+  }, []);
+
   const revealCurrentCard = useCallback((): void => {
     if (suppressRevealClickRef.current) {
       return;
@@ -426,11 +425,40 @@ export default function Cards({ searchParams }: CardsPageProps): React.ReactElem
     pointerMovedRef.current = false;
   }, [queueRevealClickSuppression]);
 
+  const clearWheelGestureReset = useCallback((): void => {
+    if (wheelGestureResetRef.current !== null) {
+      window.clearTimeout(wheelGestureResetRef.current);
+      wheelGestureResetRef.current = null;
+    }
+  }, []);
+
+  const clearWheelNavigationCooldown = useCallback((): void => {
+    if (wheelNavigationCooldownRef.current !== null) {
+      window.clearTimeout(wheelNavigationCooldownRef.current);
+      wheelNavigationCooldownRef.current = null;
+    }
+  }, []);
+
+  const resetWheelGesture = useCallback((): void => {
+    wheelIntentRef.current = 0;
+    clearWheelGestureReset();
+  }, [clearWheelGestureReset]);
+
+  const startWheelNavigationCooldown = useCallback((): void => {
+    clearWheelNavigationCooldown();
+    wheelNavigationCooldownRef.current = window.setTimeout(() => {
+      wheelNavigationCooldownRef.current = null;
+    }, WHEEL_NAVIGATION_COOLDOWN_MS);
+  }, [clearWheelNavigationCooldown]);
+
   useEffect(() => {
     return () => {
       if (suppressRevealResetRef.current !== null) {
         window.clearTimeout(suppressRevealResetRef.current);
       }
+
+      clearWheelGestureReset();
+      clearWheelNavigationCooldown();
 
       if (nextPressTimerRef.current !== null) {
         window.clearTimeout(nextPressTimerRef.current);
@@ -444,7 +472,7 @@ export default function Cards({ searchParams }: CardsPageProps): React.ReactElem
         window.clearTimeout(reviewSaveCueTimerRef.current);
       }
     };
-  }, []);
+  }, [clearWheelGestureReset, clearWheelNavigationCooldown]);
 
   const goToLesson = useCallback(
     (position: StudyPosition, direction: number, placement: DeckPlacement): void => {
@@ -452,7 +480,6 @@ export default function Cards({ searchParams }: CardsPageProps): React.ReactElem
       nextDeckDirectionRef.current = direction;
       setTransitionDirection(direction);
       setReviewMode(false);
-      setDraftReviewMode(false);
       setActiveLevel(position.level);
       setActiveLesson(position.lesson);
       setDraftLevel(position.level);
@@ -464,9 +491,8 @@ export default function Cards({ searchParams }: CardsPageProps): React.ReactElem
   const openDeckDialog = useCallback((): void => {
     setDraftLevel(activeLevel);
     setDraftLesson(activeLesson);
-    setDraftReviewMode(reviewMode);
     setDeckDialogOpen(true);
-  }, [activeLesson, activeLevel, reviewMode]);
+  }, [activeLesson, activeLevel]);
 
   const advance = useCallback((): void => {
     if (currentIndex < deck.length - 1) {
@@ -495,6 +521,51 @@ export default function Cards({ searchParams }: CardsPageProps): React.ReactElem
 
     openDeckDialog();
   }, [currentIndex, goToLesson, move, openDeckDialog, previousLessonPosition]);
+
+  const handleCardWheel = useCallback(
+    (event: ReactWheelEvent<HTMLElement>): void => {
+      if (!current || event.ctrlKey || event.metaKey || event.altKey) {
+        return;
+      }
+
+      const horizontalIntent = Math.abs(event.deltaX);
+      const verticalIntent = Math.abs(event.deltaY);
+      const hasHorizontalIntent =
+        horizontalIntent >= WHEEL_HORIZONTAL_INTENT_MIN && horizontalIntent >= verticalIntent * WHEEL_HORIZONTAL_DOMINANCE;
+      const horizontalDelta = hasHorizontalIntent ? event.deltaX : event.shiftKey ? event.deltaY : 0;
+
+      if (horizontalDelta === 0) {
+        return;
+      }
+
+      event.preventDefault();
+
+      if (wheelNavigationCooldownRef.current !== null) {
+        return;
+      }
+
+      clearWheelGestureReset();
+      wheelIntentRef.current += horizontalDelta;
+      wheelGestureResetRef.current = window.setTimeout(resetWheelGesture, WHEEL_GESTURE_RESET_MS);
+
+      if (Math.abs(wheelIntentRef.current) < WHEEL_NAVIGATION_THRESHOLD) {
+        return;
+      }
+
+      const direction = wheelIntentRef.current > 0 ? 1 : -1;
+      resetWheelGesture();
+      startWheelNavigationCooldown();
+      queueRevealClickSuppression(250);
+
+      if (direction > 0) {
+        advance();
+        return;
+      }
+
+      retreat();
+    },
+    [advance, clearWheelGestureReset, current, queueRevealClickSuppression, resetWheelGesture, retreat, startWheelNavigationCooldown]
+  );
 
   const handleDragEnd = useCallback(
     (info: PanInfo): void => {
@@ -694,13 +765,13 @@ export default function Cards({ searchParams }: CardsPageProps): React.ReactElem
     }
   };
 
-  const handleDraftLevelChange = (level: LevelId): void => {
+  const handleDraftLessonSelect = ({ level, lesson }: LessonPickerSelection): void => {
     setDraftLevel(level);
-    setDraftLesson((lesson) => parseLessonParam(level, String(lesson)) ?? getFirstLessonNumber(level));
+    setDraftLesson(parseLessonParam(level, String(lesson)) ?? getFirstLessonNumber(level));
   };
 
   const applyDraftDeck = (): void => {
-    setReviewMode(draftReviewMode);
+    setReviewMode(false);
     setActiveLevel(draftLevel);
     setActiveLesson(parseLessonParam(draftLevel, String(draftLesson)) ?? getFirstLessonNumber(draftLevel));
     resetSession();
@@ -821,6 +892,7 @@ export default function Cards({ searchParams }: CardsPageProps): React.ReactElem
                         onPointerMoveCapture={handleCardPointerMove}
                         onPointerUpCapture={handleCardPointerUp}
                         onPointerCancelCapture={handleCardPointerUp}
+                        onWheel={handleCardWheel}
                         whileDrag={prefersReducedMotion ? undefined : { cursor: "grabbing", scale: 0.985 }}
                         data-card-state={showAnswer ? "answer" : "prompt"}
                         className="flex min-h-[366px] w-full cursor-grab flex-col overflow-hidden rounded-lg border border-slate-200 bg-white text-center shadow-[0_22px_60px_rgba(15,23,42,0.18)] mobile:min-h-[420px] laptop:min-h-0"
@@ -851,14 +923,14 @@ export default function Cards({ searchParams }: CardsPageProps): React.ReactElem
                         >
                           <div
                             role={showAnswer ? undefined : "button"}
-                            onClick={revealCurrentCard}
+                            onClick={toggleCurrentCardAnswer}
                             aria-label={`Reveal answer for ${current.english_phrase}`}
                             aria-hidden={showAnswer}
                             tabIndex={showAnswer ? -1 : 0}
                             onKeyDown={(event) => {
                               if (event.key === "Enter" || event.key === " ") {
                                 event.preventDefault();
-                                revealCurrentCard();
+                                toggleCurrentCardAnswer();
                               }
                             }}
                             className={`absolute inset-0 flex cursor-pointer items-center justify-center p-5 text-center focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-inset focus-visible:ring-primary/25 tablet:p-8 [backface-visibility:hidden] ${
@@ -871,8 +943,11 @@ export default function Cards({ searchParams }: CardsPageProps): React.ReactElem
                           </div>
 
                           <div
+                            onClick={toggleCurrentCardAnswer}
                             aria-hidden={!showAnswer}
-                            className="absolute inset-0 overflow-y-auto p-5 text-left customScrollBarStyle tablet:p-8 [backface-visibility:hidden] [transform:rotateY(180deg)]"
+                            className={`absolute inset-0 overflow-y-auto p-5 text-left customScrollBarStyle tablet:p-8 [backface-visibility:hidden] [transform:rotateY(180deg)] ${
+                              showAnswer ? "cursor-pointer" : "pointer-events-none"
+                            }`}
                           >
                             <div className="mx-auto w-full max-w-3xl">
                               <h2 className="text-3xl font-black leading-tight tracking-tight text-slate-950 mobile:text-4xl">
@@ -1043,7 +1118,7 @@ export default function Cards({ searchParams }: CardsPageProps): React.ReactElem
                 <p className="mt-2 text-sm leading-6 text-slate-500">
                   {reviewMode
                     ? "No cards saved for another pass yet."
-                    : "Choose another level or lesson from the deck selector."}
+                    : "Choose another lesson from the deck selector."}
                 </p>
                 <Button type="button" className="mt-5" onClick={openDeckDialog}>
                   <SlidersHorizontal className="size-4" />
@@ -1055,20 +1130,16 @@ export default function Cards({ searchParams }: CardsPageProps): React.ReactElem
         </div>
       </section>
 
-      <DeckSelectionDialog
+      <LessonPickerModal
         deckLength={deck.length}
-        draftLesson={draftLesson}
-        draftLevel={draftLevel}
-        draftReviewMode={draftReviewMode}
         onApply={applyDraftDeck}
-        onDraftLessonChange={setDraftLesson}
-        onDraftLevelChange={handleDraftLevelChange}
-        onDraftReviewModeChange={setDraftReviewMode}
+        onLessonSelect={handleDraftLessonSelect}
         onOpenChange={handleDeckDialogOpenChange}
         onResetDeck={resetDeck}
         onShuffleDeck={shuffleDeck}
         open={deckDialogOpen}
-        reviewDeckLength={reviewDeck.length}
+        selectedLesson={draftLesson}
+        selectedLevel={draftLevel}
       />
     </main>
   );
@@ -1138,162 +1209,6 @@ function DesktopPreviewCard({
         </span>
       </span>
     </button>
-  );
-}
-
-function DeckSelectionDialog({
-  deckLength,
-  draftLesson,
-  draftLevel,
-  draftReviewMode,
-  onApply,
-  onDraftLessonChange,
-  onDraftLevelChange,
-  onDraftReviewModeChange,
-  onOpenChange,
-  onResetDeck,
-  onShuffleDeck,
-  open,
-  reviewDeckLength,
-}: DeckSelectionDialogProps): React.ReactElement {
-  const lessons = getLessons(draftLevel);
-  const draftLevelMeta = LEVELS.find((level) => level.id === draftLevel) ?? LEVELS[0];
-
-  return (
-    <Dialog.Root open={open} onOpenChange={onOpenChange}>
-      <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-50 bg-slate-950/45 backdrop-blur-sm data-[state=closed]:animate-out data-[state=open]:animate-in data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 flex max-h-[min(760px,calc(100dvh-2rem))] w-[calc(100%-2rem)] max-w-3xl -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-lg border border-border bg-white shadow-[0_24px_80px_rgba(15,23,42,0.28)] focus-visible:outline-none">
-          <div className="flex min-w-0 items-start justify-between gap-4 border-b border-border p-5">
-            <div className="min-w-0">
-              <Dialog.Title className="text-xl font-black tracking-tight text-slate-950">Choose your deck</Dialog.Title>
-              <Dialog.Description className="mt-1 text-sm leading-6 text-slate-500">
-                Pick a lesson deck or review only the cards that need another pass.
-              </Dialog.Description>
-            </div>
-            <Dialog.Close className="inline-flex size-10 shrink-0 items-center justify-center rounded-lg border border-border bg-white text-slate-600 shadow-sm transition-colors duration-150 hover:bg-accent focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-primary/25">
-              <X className="size-4" aria-hidden="true" />
-              <span className="sr-only">Close</span>
-            </Dialog.Close>
-          </div>
-
-          <div className="min-h-0 flex-1 overflow-y-auto p-5 customScrollBarStyle">
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                aria-pressed={!draftReviewMode}
-                onClick={() => onDraftReviewModeChange(false)}
-                className={`${modeButton} ${
-                  !draftReviewMode ? "border-primary bg-primary/10 text-primary" : "border-border bg-white text-slate-600 hover:bg-slate-50"
-                }`}
-              >
-                Lessons
-              </button>
-              <button
-                type="button"
-                aria-pressed={draftReviewMode}
-                onClick={() => onDraftReviewModeChange(true)}
-                className={`${modeButton} ${
-                  draftReviewMode ? "border-primary bg-primary/10 text-primary" : "border-border bg-white text-slate-600 hover:bg-slate-50"
-                }`}
-              >
-                Review ({reviewDeckLength})
-              </button>
-            </div>
-
-            {!draftReviewMode ? (
-              <>
-                <div className="mt-5 grid grid-cols-1 gap-2 tablet:grid-cols-3">
-                  {LEVELS.map((level) => {
-                    const isActive = draftLevel === level.id;
-                    const styles = levelDialogStyles[level.id];
-
-                    return (
-                      <button
-                        key={level.id}
-                        type="button"
-                        aria-pressed={isActive}
-                        onClick={() => onDraftLevelChange(level.id)}
-                        className={`flex min-h-14 items-center justify-between gap-3 rounded-lg border px-4 py-3 text-left text-sm font-black transition-colors duration-150 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-primary/25 ${
-                          isActive ? styles.active : "border-border bg-white text-slate-700 hover:bg-slate-50"
-                        }`}
-                      >
-                        <span>{level.label}</span>
-                        <span className={`size-3 rounded ${styles.dot}`} aria-hidden="true" />
-                      </button>
-                    );
-                  })}
-                </div>
-
-                <div className="mt-5">
-                  <div className="flex items-end justify-between gap-3">
-                    <div>
-                      <p className="text-xs font-bold uppercase tracking-[0.12em] text-primary">{draftLevelMeta.label}</p>
-                      <h3 className="mt-1 text-lg font-black tracking-tight text-slate-950">Select lesson</h3>
-                    </div>
-                    <p className="text-sm font-semibold text-slate-500">{lessons.length} lessons</p>
-                  </div>
-
-                  <div className="mt-3 grid max-h-72 grid-cols-2 gap-2 overflow-y-auto pr-1 customScrollBarStyle mobile:grid-cols-3 tablet:grid-cols-4">
-                    {lessons.map((lesson) => {
-                      const cardsCount = getIdiomsForLesson(draftLevel, lesson.lesson_number).length;
-                      const isActive = draftLesson === lesson.lesson_number;
-
-                      return (
-                        <button
-                          key={lesson.lesson_number}
-                          type="button"
-                          aria-current={isActive ? "true" : undefined}
-                          onClick={() => onDraftLessonChange(lesson.lesson_number)}
-                          className={`min-h-16 rounded-lg border p-3 text-left transition-colors duration-150 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-primary/25 ${
-                            isActive ? "border-primary bg-primary/10 text-slate-950" : "border-border bg-white text-slate-700 hover:border-primary/35"
-                          }`}
-                        >
-                          <div className="text-sm font-black">Lesson {lesson.lesson_number}</div>
-                          <div className="mt-1 text-xs font-semibold text-slate-500">{cardsCount} cards</div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              </>
-            ) : (
-              <div className="mt-5 rounded-lg border border-blue-100 bg-blue-50 p-4 text-sm leading-6 text-blue-950">
-                You currently have {reviewDeckLength} review cards saved for another pass.
-              </div>
-            )}
-
-            <div className="mt-5">
-              <div className="rounded-lg border border-border bg-slate-50 p-4">
-                <p className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">Session tools</p>
-                <div className="mt-3 grid grid-cols-2 gap-2">
-                  <Button type="button" variant="outline" onClick={onShuffleDeck} disabled={!deckLength}>
-                    <Shuffle className="size-4" />
-                    Shuffle
-                  </Button>
-                  <Button type="button" variant="outline" onClick={onResetDeck} disabled={!deckLength}>
-                    <RotateCcw className="size-4" />
-                    Reset
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex flex-col-reverse gap-2 border-t border-border p-5 mobile:flex-row mobile:justify-end">
-            <Dialog.Close asChild>
-              <Button type="button" variant="outline">
-                Cancel
-              </Button>
-            </Dialog.Close>
-            <Button type="button" onClick={onApply}>
-              Start selected deck
-              <ArrowRight className="size-4" />
-            </Button>
-          </div>
-        </Dialog.Content>
-      </Dialog.Portal>
-    </Dialog.Root>
   );
 }
 
