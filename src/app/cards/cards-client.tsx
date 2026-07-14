@@ -1,6 +1,6 @@
 "use client";
 
-import { AnimatePresence, motion, useReducedMotion, type PanInfo, type Variants } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion, type PanInfo, type TargetAndTransition } from "framer-motion";
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent, type WheelEvent as ReactWheelEvent } from "react";
 import { ArrowLeft, ArrowRight, Eye, EyeOff, SlidersHorizontal, Star } from "lucide-react";
 import Appbar from "@/components/appbar";
@@ -35,42 +35,14 @@ type ReviewSaveCue = {
   id: number;
 };
 
-type DesktopPreviewCardProps = {
-  card?: IdiomEntry;
-  className?: string;
+type StackedCardFaceProps = {
+  card: IdiomEntry;
   deckLength: number;
+  isCurrent: boolean;
   offset: number;
-  onSelect: (offset: number) => void;
+  onToggleAnswer: () => void;
+  showAnswer: boolean;
   targetIndex: number;
-};
-
-const flashCardVariants: Variants = {
-  enter: (direction: number) => ({
-    opacity: 0,
-    rotateZ: direction > 0 ? 2.5 : direction < 0 ? -2.5 : 0,
-    scale: 0.96,
-    x: direction > 0 ? 88 : direction < 0 ? -88 : 0,
-  }),
-  center: {
-    opacity: 1,
-    rotateZ: 0,
-    scale: 1,
-    x: 0,
-    transition: { duration: 0.34, ease: [0.22, 1, 0.36, 1] },
-  },
-  exit: (direction: number) => ({
-    opacity: 0,
-    rotateZ: direction > 0 ? -2.5 : direction < 0 ? 2.5 : 0,
-    scale: 0.96,
-    x: direction > 0 ? -88 : direction < 0 ? 88 : 0,
-    transition: { duration: 0.24, ease: [0.4, 0, 1, 1] },
-  }),
-};
-
-const reducedFlashCardVariants: Variants = {
-  enter: { opacity: 0 },
-  center: { opacity: 1, transition: { duration: 0.12 } },
-  exit: { opacity: 0, transition: { duration: 0.08 } },
 };
 
 const SWIPE_DISTANCE = 90;
@@ -83,9 +55,42 @@ const WHEEL_NAVIGATION_COOLDOWN_MS = 240;
 const WHEEL_GESTURE_RESET_MS = 100;
 const WHEEL_HORIZONTAL_INTENT_MIN = 4;
 const WHEEL_HORIZONTAL_DOMINANCE = 0.65;
+const STACK_VISIBLE_OFFSET = 3;
+const STACK_CARD_X_BY_OFFSET = [0, 238, 420, 560] as const;
+const STACK_CARD_Y_BY_OFFSET = [0, 14, 30, 50] as const;
+const STACK_CARD_ROTATION_BY_OFFSET = [0, 2.4, 4.2, 5.6] as const;
+const STACK_CARD_OPACITY_BY_OFFSET = [1, 0.88, 0.5, 0.18] as const;
+const STACK_CARD_TRANSITION = {
+  type: "spring",
+  stiffness: 150,
+  damping: 24,
+  mass: 0.95,
+} as const;
+const STACK_CARD_REDUCED_TRANSITION = { duration: 0.01 } as const;
+const STACK_CARD_CLASS =
+  "flex h-full min-h-[366px] w-full max-w-[38rem] flex-col overflow-hidden rounded-lg border border-slate-200 bg-white text-center shadow-[0_22px_60px_rgba(15,23,42,0.18)] mobile:min-h-[420px] laptop:min-h-0";
 
 function getParam(value: string | string[] | undefined): string | null {
   return Array.isArray(value) ? value[0] ?? null : value ?? null;
+}
+
+function getStackCardPlacement(offset: number, prefersReducedMotion: boolean): TargetAndTransition {
+  const absoluteOffset = Math.abs(offset);
+  const direction = Math.sign(offset);
+  const visibleOffset = Math.min(absoluteOffset, STACK_VISIBLE_OFFSET);
+  const isBeyondStack = absoluteOffset > STACK_VISIBLE_OFFSET;
+
+  return {
+    opacity: isBeyondStack ? 0 : STACK_CARD_OPACITY_BY_OFFSET[visibleOffset],
+    rotateZ: direction * STACK_CARD_ROTATION_BY_OFFSET[visibleOffset],
+    x: direction * (isBeyondStack ? STACK_CARD_X_BY_OFFSET[STACK_VISIBLE_OFFSET] + 140 : STACK_CARD_X_BY_OFFSET[visibleOffset]),
+    y: isBeyondStack ? STACK_CARD_Y_BY_OFFSET[STACK_VISIBLE_OFFSET] + 24 : STACK_CARD_Y_BY_OFFSET[visibleOffset],
+    transition: prefersReducedMotion ? STACK_CARD_REDUCED_TRANSITION : STACK_CARD_TRANSITION,
+  };
+}
+
+function getStackCardZIndex(offset: number): number {
+  return 80 - Math.min(Math.abs(offset), STACK_VISIBLE_OFFSET + 1) * 10;
 }
 
 function getFirstLessonNumber(level: LevelId): number {
@@ -243,13 +248,11 @@ export default function Cards({ searchParams }: CardsPageProps): React.ReactElem
   const [deckDialogOpen, setDeckDialogOpen] = useState(false);
   const [deckOrder, setDeckOrder] = useState<string[]>([]);
   const [reviewMode, setReviewMode] = useState(requestedModeParam === "review");
-  const [transitionDirection, setTransitionDirection] = useState(0);
   const [nextPressState, setNextPressState] = useState<NextPressState>("idle");
   const [reviewSaveCue, setReviewSaveCue] = useState<ReviewSaveCue | null>(null);
   const nextDeckPlacementRef = useRef<DeckPlacement>("start");
   const suppressRevealClickRef = useRef(false);
   const suppressRevealResetRef = useRef<number | null>(null);
-  const nextDeckDirectionRef = useRef(0);
   const pointerStartRef = useRef<{ x: number; y: number } | null>(null);
   const pointerMovedRef = useRef(false);
   const wheelIntentRef = useRef(0);
@@ -276,8 +279,7 @@ export default function Cards({ searchParams }: CardsPageProps): React.ReactElem
   const current = deck[currentIndex];
   const progressPercent = deck.length ? Math.round(((currentIndex + 1) / deck.length) * 100) : 0;
 
-  const resetSession = useCallback((options: { direction?: number; index?: number } = {}): void => {
-    setTransitionDirection(options.direction ?? 0);
+  const resetSession = useCallback((options: { index?: number } = {}): void => {
     setCurrentIndex(options.index ?? 0);
     setShowAnswer(false);
   }, []);
@@ -308,15 +310,11 @@ export default function Cards({ searchParams }: CardsPageProps): React.ReactElem
   useEffect(() => {
     const nextDeckOrder = sourceDeck.map((idiom) => idiom.id);
     const shouldStartAtEnd = nextDeckPlacementRef.current === "end";
-    const direction = nextDeckDirectionRef.current;
-
     setDeckOrder(nextDeckOrder);
     resetSession({
-      direction,
       index: shouldStartAtEnd ? Math.max(nextDeckOrder.length - 1, 0) : 0,
     });
     nextDeckPlacementRef.current = "start";
-    nextDeckDirectionRef.current = 0;
   }, [sourceDeck, resetSession]);
 
   const isFirstCard = deck.length > 0 && currentIndex <= 0;
@@ -350,7 +348,6 @@ export default function Cards({ searchParams }: CardsPageProps): React.ReactElem
         return;
       }
 
-      setTransitionDirection(direction > 0 ? 1 : -1);
       setShowAnswer(false);
       setCurrentIndex(nextIndex);
     },
@@ -475,10 +472,8 @@ export default function Cards({ searchParams }: CardsPageProps): React.ReactElem
   }, [clearWheelGestureReset, clearWheelNavigationCooldown]);
 
   const goToLesson = useCallback(
-    (position: StudyPosition, direction: number, placement: DeckPlacement): void => {
+    (position: StudyPosition, placement: DeckPlacement): void => {
       nextDeckPlacementRef.current = placement;
-      nextDeckDirectionRef.current = direction;
-      setTransitionDirection(direction);
       setReviewMode(false);
       setActiveLevel(position.level);
       setActiveLesson(position.lesson);
@@ -501,7 +496,7 @@ export default function Cards({ searchParams }: CardsPageProps): React.ReactElem
     }
 
     if (nextLessonPosition) {
-      goToLesson(nextLessonPosition, 1, "start");
+      goToLesson(nextLessonPosition, "start");
       return;
     }
 
@@ -515,7 +510,7 @@ export default function Cards({ searchParams }: CardsPageProps): React.ReactElem
     }
 
     if (previousLessonPosition) {
-      goToLesson(previousLessonPosition, -1, "end");
+      goToLesson(previousLessonPosition, "end");
       return;
     }
 
@@ -607,7 +602,7 @@ export default function Cards({ searchParams }: CardsPageProps): React.ReactElem
       }
 
       if (nextLessonPosition) {
-        goToLesson(nextLessonPosition, 1, "start");
+        goToLesson(nextLessonPosition, "start");
         return;
       }
 
@@ -854,145 +849,79 @@ export default function Cards({ searchParams }: CardsPageProps): React.ReactElem
                   aria-hidden="true"
                 />
 
-                <div className="relative z-10 grid min-h-0 w-full grid-cols-1 items-stretch gap-3 [perspective:1400px] laptop:grid-cols-[minmax(126px,0.42fr)_minmax(420px,1.4fr)_minmax(126px,0.42fr)] laptop:gap-4 desktop:grid-cols-[minmax(96px,0.32fr)_minmax(154px,0.5fr)_minmax(460px,1.28fr)_minmax(154px,0.5fr)_minmax(96px,0.32fr)] desktop:gap-5">
-                  <DesktopPreviewCard
-                    card={deck[currentIndex - 2]}
-                    className="hidden desktop:flex"
-                    deckLength={deck.length}
-                    offset={-2}
-                    onSelect={move}
-                    targetIndex={currentIndex - 2}
-                  />
+                <div className="relative z-10 flex min-h-0 w-full flex-1 items-center justify-center overflow-hidden [perspective:1400px]">
+                  {deck.map((card, index) => {
+                    const offset = index - currentIndex;
+                    const isCurrent = offset === 0;
+                    const isVisibleInStack = Math.abs(offset) <= STACK_VISIBLE_OFFSET;
+                    const isSelectablePreview = !isCurrent && isVisibleInStack;
 
-                  <DesktopPreviewCard
-                    card={deck[currentIndex - 1]}
-                    className="hidden laptop:flex"
-                    deckLength={deck.length}
-                    offset={-1}
-                    onSelect={move}
-                    targetIndex={currentIndex - 1}
-                  />
-
-                  <div className="relative z-20 flex min-h-0 w-full [perspective:1200px]">
-                    <AnimatePresence mode="wait" custom={transitionDirection} initial={false}>
-                      <motion.article
-                        key={current.id}
-                        custom={transitionDirection}
-                        variants={prefersReducedMotion ? reducedFlashCardVariants : flashCardVariants}
-                        initial="enter"
-                        animate="center"
-                        exit="exit"
-                        drag={prefersReducedMotion ? false : "x"}
-                        dragConstraints={{ left: 0, right: 0 }}
-                        dragElastic={0.18}
-                        dragSnapToOrigin
-                        onDragStart={() => queueRevealClickSuppression()}
-                        onDragEnd={(_, info) => handleDragEnd(info)}
-                        onPointerDownCapture={handleCardPointerDown}
-                        onPointerMoveCapture={handleCardPointerMove}
-                        onPointerUpCapture={handleCardPointerUp}
-                        onPointerCancelCapture={handleCardPointerUp}
-                        onWheel={handleCardWheel}
-                        whileDrag={prefersReducedMotion ? undefined : { cursor: "grabbing", scale: 0.985 }}
-                        data-card-state={showAnswer ? "answer" : "prompt"}
-                        className="flex min-h-[366px] w-full cursor-grab flex-col overflow-hidden rounded-lg border border-slate-200 bg-white text-center shadow-[0_22px_60px_rgba(15,23,42,0.18)] mobile:min-h-[420px] laptop:min-h-0"
-                        style={{ transformStyle: "preserve-3d" }}
+                    return (
+                      <div
+                        key={card.id}
+                        className="absolute inset-0 flex items-center justify-center mobile:px-2 laptop:px-6"
+                        style={{
+                          pointerEvents: isVisibleInStack ? "auto" : "none",
+                          zIndex: getStackCardZIndex(offset),
+                        }}
                       >
-                        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-dashed border-slate-200 bg-slate-50/80 px-4 py-3 text-xs font-black uppercase tracking-[0.12em] text-slate-500 mobile:px-5">
-                          <div className="flex min-w-0 items-center gap-2">
-                            <span className="truncate">
-                              {current.levelLabel} / Lesson {current.lessonNumber}
-                            </span>
-                            <span className={`shrink-0 rounded-md px-2 py-1 text-[10px] tracking-[0.1em] ${showAnswer ? "bg-emerald-50 text-emerald-700" : "bg-slate-200/80 text-slate-600"}`}>
-                              {showAnswer ? "Answer" : "Prompt"}
-                            </span>
-                          </div>
-                          <span className="shrink-0 text-slate-700">
-                            {currentIndex + 1}/{deck.length}
-                          </span>
-                        </div>
-
-                        <motion.div
-                          className="relative min-h-0 flex-1 [transform-style:preserve-3d]"
-                          animate={{ rotateY: showAnswer ? 180 : 0 }}
-                          transition={
-                            prefersReducedMotion
-                              ? { duration: 0.12 }
-                              : { duration: 0.42, ease: [0.22, 1, 0.36, 1] }
+                        <motion.article
+                          initial={false}
+                          animate={getStackCardPlacement(offset, Boolean(prefersReducedMotion))}
+                          drag={isCurrent && !prefersReducedMotion ? "x" : false}
+                          dragConstraints={{ left: 0, right: 0 }}
+                          dragElastic={0.18}
+                          dragSnapToOrigin
+                          onDragStart={isCurrent ? () => queueRevealClickSuppression() : undefined}
+                          onDragEnd={isCurrent ? (_, info) => handleDragEnd(info) : undefined}
+                          onPointerDownCapture={isCurrent ? handleCardPointerDown : undefined}
+                          onPointerMoveCapture={isCurrent ? handleCardPointerMove : undefined}
+                          onPointerUpCapture={isCurrent ? handleCardPointerUp : undefined}
+                          onPointerCancelCapture={isCurrent ? handleCardPointerUp : undefined}
+                          onWheel={isCurrent ? handleCardWheel : undefined}
+                          whileDrag={isCurrent && !prefersReducedMotion ? { cursor: "grabbing", zIndex: 120 } : undefined}
+                          role={isSelectablePreview ? "button" : undefined}
+                          tabIndex={isSelectablePreview ? 0 : undefined}
+                          aria-label={
+                            isSelectablePreview
+                              ? `Go to ${offset < 0 ? "previous" : "next"} card ${index + 1}: ${card.english_phrase}`
+                              : undefined
                           }
+                          aria-hidden={isVisibleInStack ? undefined : true}
+                          onClick={isSelectablePreview ? () => move(offset) : undefined}
+                          onKeyDown={
+                            isSelectablePreview
+                              ? (event) => {
+                                  if (event.key === "Enter" || event.key === " ") {
+                                    event.preventDefault();
+                                    move(offset);
+                                  }
+                                }
+                              : undefined
+                          }
+                          data-card-state={isCurrent ? (showAnswer ? "answer" : "prompt") : "preview"}
+                          className={cn(
+                            STACK_CARD_CLASS,
+                            isCurrent
+                              ? "cursor-grab"
+                              : "cursor-pointer text-left shadow-[0_18px_48px_rgba(15,23,42,0.12)] outline-none transition-[border-color,background-color,box-shadow] duration-200 hover:border-primary/25 hover:bg-white/95 hover:shadow-[0_24px_60px_rgba(15,23,42,0.16)] focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-primary/25",
+                            !isVisibleInStack && "pointer-events-none"
+                          )}
+                          style={{ transformStyle: "preserve-3d" }}
                         >
-                          <div
-                            role={showAnswer ? undefined : "button"}
-                            onClick={toggleCurrentCardAnswer}
-                            aria-label={`Reveal answer for ${current.english_phrase}`}
-                            aria-hidden={showAnswer}
-                            tabIndex={showAnswer ? -1 : 0}
-                            onKeyDown={(event) => {
-                              if (event.key === "Enter" || event.key === " ") {
-                                event.preventDefault();
-                                toggleCurrentCardAnswer();
-                              }
-                            }}
-                            className={`absolute inset-0 flex cursor-pointer items-center justify-center p-5 text-center focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-inset focus-visible:ring-primary/25 tablet:p-8 [backface-visibility:hidden] ${
-                              showAnswer ? "pointer-events-none" : ""
-                            }`}
-                          >
-                            <h2 className="max-w-3xl text-3xl font-black leading-tight tracking-tight text-slate-950 mobile:text-4xl">
-                              {current.english_phrase}
-                            </h2>
-                          </div>
-
-                          <div
-                            onClick={toggleCurrentCardAnswer}
-                            aria-hidden={!showAnswer}
-                            className={`absolute inset-0 overflow-y-auto p-5 text-left customScrollBarStyle tablet:p-8 [backface-visibility:hidden] [transform:rotateY(180deg)] ${
-                              showAnswer ? "cursor-pointer" : "pointer-events-none"
-                            }`}
-                          >
-                            <div className="mx-auto w-full max-w-3xl">
-                              <h2 className="text-3xl font-black leading-tight tracking-tight text-slate-950 mobile:text-4xl">
-                                {current.english_phrase}
-                              </h2>
-
-                              <div className="mt-7 divide-y divide-slate-200">
-                                <AnswerBlock title="Meaning" rtl text={current.persian_phrase_meaning} />
-                                <AnswerBlock title="Definition" text={current.english_definition} />
-                                {current.examples?.[0] ? (
-                                  <div className="pt-5">
-                                    <div className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">Example</div>
-                                    <p className="mt-2 text-sm font-semibold leading-6 text-slate-900 mobile:text-base">
-                                      {current.examples[0].english_text}
-                                    </p>
-                                    <p dir="rtl" className="mt-2 font-iranYekan text-sm leading-7 text-slate-700">
-                                      {current.examples[0].persian_meaning}
-                                    </p>
-                                  </div>
-                                ) : null}
-                              </div>
-                            </div>
-                          </div>
-                        </motion.div>
-                      </motion.article>
-                    </AnimatePresence>
-                  </div>
-
-                  <DesktopPreviewCard
-                    card={deck[currentIndex + 1]}
-                    className="hidden laptop:flex"
-                    deckLength={deck.length}
-                    offset={1}
-                    onSelect={move}
-                    targetIndex={currentIndex + 1}
-                  />
-
-                  <DesktopPreviewCard
-                    card={deck[currentIndex + 2]}
-                    className="hidden desktop:flex"
-                    deckLength={deck.length}
-                    offset={2}
-                    onSelect={move}
-                    targetIndex={currentIndex + 2}
-                  />
+                          <StackedCardFace
+                            card={card}
+                            deckLength={deck.length}
+                            isCurrent={isCurrent}
+                            offset={offset}
+                            onToggleAnswer={toggleCurrentCardAnswer}
+                            showAnswer={isCurrent && showAnswer}
+                            targetIndex={index}
+                          />
+                        </motion.article>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -1145,70 +1074,133 @@ export default function Cards({ searchParams }: CardsPageProps): React.ReactElem
   );
 }
 
-function DesktopPreviewCard({
+function StackedCardFace({
   card,
-  className,
   deckLength,
+  isCurrent,
   offset,
-  onSelect,
+  onToggleAnswer,
+  showAnswer,
   targetIndex,
-}: DesktopPreviewCardProps): React.ReactElement {
+}: StackedCardFaceProps): React.ReactElement {
   const isNear = Math.abs(offset) === 1;
   const isBefore = offset < 0;
-  const previewProgress = deckLength ? Math.min(100, Math.max(0, Math.round(((targetIndex + 1) / deckLength) * 100))) : 0;
   const positionLabel = isBefore ? (isNear ? "Previous" : "Earlier") : isNear ? "Next" : "Later";
-
-  if (!card) {
-    return <div aria-hidden="true" className={cn("pointer-events-none min-h-[320px] rounded-lg opacity-0", className)} />;
-  }
+  const cardModeLabel = isCurrent ? (showAnswer ? "Answer" : "Prompt") : positionLabel;
+  const answerVisible = isCurrent && showAnswer;
 
   return (
-    <button
-      type="button"
-      onClick={() => onSelect(offset)}
-      aria-label={`Go to ${positionLabel.toLowerCase()} card ${targetIndex + 1}: ${card.english_phrase}`}
-      className={cn(
-        "group relative min-h-[320px] min-w-0 flex-col overflow-hidden rounded-lg border border-white/75 bg-white/70 p-4 text-left shadow-[0_18px_48px_rgba(15,23,42,0.12)] outline-none transition-[opacity,transform,border-color,background-color,box-shadow] duration-200 focus-visible:border-primary/40 focus-visible:ring-3 focus-visible:ring-primary/25",
-        "hover:-translate-y-1 hover:border-primary/25 hover:bg-white/90 hover:shadow-[0_22px_54px_rgba(15,23,42,0.16)]",
-        isNear ? "opacity-75" : "scale-[0.94] opacity-45",
-        isBefore ? "-rotate-1" : "rotate-1",
-        className
-      )}
-    >
-      <span
-        className="pointer-events-none absolute inset-0 bg-[linear-gradient(160deg,rgba(255,255,255,0.92),rgba(248,250,252,0.72)_48%,rgba(236,253,245,0.46)_100%)]"
-        aria-hidden="true"
-      />
-      <span className="pointer-events-none absolute inset-x-3 top-12 border-t border-dashed border-slate-300/80" aria-hidden="true" />
-
-      <span className="relative z-10 flex h-full min-h-[288px] flex-col">
-        <span className="flex min-w-0 items-center justify-between gap-2 text-[10px] font-black uppercase tracking-[0.12em] text-slate-500">
-          <span className="truncate">{positionLabel}</span>
-          <span className="shrink-0 tabular-nums">
-            {targetIndex + 1}/{deckLength}
+    <>
+      <div className="flex shrink-0 items-center justify-between gap-3 border-b border-dashed border-slate-200 bg-slate-50/80 px-4 py-3 text-xs font-black uppercase tracking-[0.12em] text-slate-500 mobile:px-5">
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="truncate">
+            {card.levelLabel} / Lesson {card.lessonNumber}
           </span>
+          <span
+            className={cn(
+              "shrink-0 rounded-md px-2 py-1 text-[10px] tracking-[0.1em]",
+              answerVisible
+                ? "bg-emerald-50 text-emerald-700"
+                : isCurrent
+                  ? "bg-slate-200/80 text-slate-600"
+                  : "bg-white text-slate-500"
+            )}
+          >
+            {cardModeLabel}
+          </span>
+        </div>
+        <span className="shrink-0 text-slate-700">
+          {targetIndex + 1}/{deckLength}
         </span>
+      </div>
 
-        <span
+      <motion.div
+        className="relative min-h-0 flex-1 [transform-style:preserve-3d]"
+        animate={{ rotateY: answerVisible ? 180 : 0 }}
+        transition={{ duration: isCurrent ? 0.42 : 0.24, ease: [0.22, 1, 0.36, 1] }}
+      >
+        <div
+          role={isCurrent && !answerVisible ? "button" : undefined}
+          onClick={isCurrent ? onToggleAnswer : undefined}
+          aria-label={isCurrent ? `Reveal answer for ${card.english_phrase}` : undefined}
+          aria-hidden={answerVisible}
+          tabIndex={isCurrent && !answerVisible ? 0 : -1}
+          onKeyDown={(event) => {
+            if (!isCurrent) {
+              return;
+            }
+
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              onToggleAnswer();
+            }
+          }}
           className={cn(
-            "mt-9 block select-none text-xl font-black leading-tight text-slate-900 transition-[filter,opacity] duration-200 group-hover:opacity-90",
-            isNear ? "blur-[1px] opacity-70" : "blur-[2px] opacity-55"
+            "absolute inset-0 flex items-center justify-center p-5 text-center focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-inset focus-visible:ring-primary/25 tablet:p-8 [backface-visibility:hidden]",
+            isCurrent ? "cursor-pointer" : "pointer-events-none select-none",
+            answerVisible && "pointer-events-none",
+            !isCurrent && (isNear ? "blur-[1px] opacity-72" : "blur-[2px] opacity-55")
           )}
         >
-          {card.english_phrase}
-        </span>
+          <h2 className="max-w-3xl text-3xl font-black leading-tight tracking-tight text-slate-950 mobile:text-4xl">
+            {card.english_phrase}
+          </h2>
+        </div>
 
-        <span className="mt-auto block pt-6">
-          <span className="block h-1.5 overflow-hidden rounded-full bg-slate-200/75">
-            <span
-              className={cn("block h-full rounded-full", isBefore ? "bg-slate-400" : "bg-gradient-to-r from-blue-500 to-teal-400")}
-              style={{ width: `${previewProgress}%` }}
-              aria-hidden="true"
-            />
-          </span>
-        </span>
-      </span>
-    </button>
+        <div
+          onClick={isCurrent ? onToggleAnswer : undefined}
+          aria-hidden={!answerVisible}
+          className={cn(
+            "absolute inset-0 overflow-y-auto p-5 text-left customScrollBarStyle tablet:p-8 [backface-visibility:hidden] [transform:rotateY(180deg)]",
+            answerVisible ? "cursor-pointer" : "pointer-events-none"
+          )}
+        >
+          <div className="mx-auto w-full max-w-3xl">
+            <h2 className="text-3xl font-black leading-tight tracking-tight text-slate-950 mobile:text-4xl">
+              {card.english_phrase}
+            </h2>
+
+            <div className="mt-7 divide-y divide-slate-200">
+              <AnswerBlock title="Meaning" rtl text={card.persian_phrase_meaning} />
+              <AnswerBlock title="Definition" text={card.english_definition} />
+              {card.examples?.[0] ? (
+                <div className="pt-5">
+                  <div className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">Example</div>
+                  <p className="mt-2 text-sm font-semibold leading-6 text-slate-900 mobile:text-base">
+                    {card.examples[0].english_text}
+                  </p>
+                  <p dir="rtl" className="mt-2 font-iranYekan text-sm leading-7 text-slate-700">
+                    {card.examples[0].persian_meaning}
+                  </p>
+                </div>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      </motion.div>
+
+      <div className="pointer-events-none h-1.5 overflow-hidden bg-slate-100" aria-hidden="true">
+        <motion.div
+          className={cn("h-full", isBefore ? "bg-slate-400" : "bg-gradient-to-r from-blue-500 to-teal-400")}
+          animate={{ width: `${deckLength ? Math.min(100, Math.max(0, Math.round(((targetIndex + 1) / deckLength) * 100))) : 0}%` }}
+          transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
+        />
+      </div>
+
+      {!isCurrent ? (
+        <span
+          className={cn(
+            "pointer-events-none absolute inset-0 rounded-lg ring-1 ring-inset ring-white/50",
+            isNear ? "bg-white/6" : "bg-white/14"
+          )}
+          aria-hidden="true"
+        />
+      ) : null}
+
+      {!isCurrent ? (
+        <span className="pointer-events-none absolute inset-x-3 top-[3.25rem] border-t border-dashed border-slate-200/80" aria-hidden="true" />
+      ) : null}
+    </>
   );
 }
 

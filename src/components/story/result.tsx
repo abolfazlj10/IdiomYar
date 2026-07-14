@@ -11,7 +11,10 @@ interface resultProps {
     theStory: string;
     storyPersian: string;
     storyEnglish: string;
-    newStory: () => void;
+    newStory?: () => void;
+    title?: string;
+    iconSrc?: string;
+    actionLabel?: string;
 }
 
 type StoryLanguage = 'en' | 'fa';
@@ -68,6 +71,9 @@ export const ResultStory = ({
     storyEnglish,
     storyPersian,
     newStory,
+    title = "Lesson story",
+    iconSrc = "/icon/Seedling.svg",
+    actionLabel = "New Story",
 }: resultProps) => {
     const [fontSize, setFontSize] = useState(14);
     const [lineHeight, setLineHeight] = useState(2);
@@ -135,16 +141,20 @@ export const ResultStory = ({
     }
 
     const buttonNewStory = () => {
+        if (!newStory) {
+            return null;
+        }
+
         return(
             <button onClick={()=> {
                 newStory()
-            }} className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg bg-primaryColor/90 hover:bg-primaryColor text-white shadow-lg font-semibold max-tablet:text-xs transition-all duration-150 cursor-pointer">+ New Story</button>
+            }} className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg bg-primaryColor/90 hover:bg-primaryColor text-white shadow-lg font-semibold max-tablet:text-xs transition-all duration-150 cursor-pointer">{actionLabel}</button>
         )
     }
 
     return(
         <div className="flex flex-col flex-1 gap-2 overflow-hidden animate-fadein">
-            <Appbar onBackClick={()=> isShow(false)} title='The story' iconSrc="./icon/Otter.svg" rightButton={buttonNewStory()}/>
+            <Appbar onBackClick={()=> isShow(false)} title={title} iconSrc={iconSrc} rightButton={buttonNewStory()}/>
             <>
             <div className="flex justify-center gap-6 max-[428px]:gap-2">
                 {/* Language Group */}

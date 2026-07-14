@@ -15,7 +15,7 @@ IdiomYar helps learners move from passive recognition to active usage:
 - Search idioms by phrase, meaning, level, or lesson.
 - Study idioms level by level through guided lesson pages.
 - Practice quick recall with flash cards.
-- Generate short Persian and English stories using selected idioms.
+- Generate short Persian and English stories from the lesson you are studying.
 - Save generated stories, bookmarks, and difficult cards for later review.
 
 ## Screenshots
@@ -23,10 +23,6 @@ IdiomYar helps learners move from passive recognition to active usage:
 | Lesson Study | Flash Cards |
 | --- | --- |
 | <img src="public/screenshot/lessonStudy.png" alt="Lesson study page showing idioms grouped by level and lesson" width="420" /> | <img src="public/screenshot/flashCards.png" alt="Flash cards page for practicing idioms" width="420" /> |
-
-| Story Creator | Story Result |
-| --- | --- |
-| <img src="public/screenshot/storyCreator.png" alt="Story creator page for selecting idioms and generating a bilingual story" width="420" /> | <img src="public/screenshot/storyCreatorResult.png" alt="Generated bilingual story result page" width="420" /> |
 
 | Archive & Review |
 | --- |
@@ -36,8 +32,8 @@ IdiomYar helps learners move from passive recognition to active usage:
 
 1. Start from the home page and search for an idiom or choose a study mode.
 2. Open Lesson Study to browse idioms by level and lesson.
-3. Use Flash Cards to test recall and reinforce meaning.
-4. Open Story Creator to generate a short bilingual story from selected idioms.
+3. Use the story icon on the current lesson to generate a short bilingual story.
+4. Use Flash Cards to test recall and reinforce meaning.
 5. Save stories and difficult idioms to Archive & Review.
 
 ## Features
@@ -50,13 +46,15 @@ The home page includes a fast idiom search experience that can find idioms by En
 
 Learners can browse structured idiom content across Elementary, Intermediate, and Advanced levels. Each lesson keeps idioms close to their definitions, meanings, and examples.
 
+The lesson page can also generate a bilingual story from the idioms in the current lesson, then save it to the archive automatically.
+
 ### Flash Cards
 
 Flash cards provide a focused review mode for quick recall. This is useful when learners want short practice sessions instead of reading full lesson context.
 
-### Story Creator
+### Lesson Stories
 
-Story Creator turns selected idioms into a short bilingual story. The generated story keeps Persian and English paragraphs aligned so learners can compare meaning and usage naturally.
+Lesson stories turn the current lesson's idioms into a short bilingual story. The generated story keeps Persian and English paragraphs aligned so learners can compare meaning and usage naturally.
 
 ### Archive & Review
 
@@ -118,7 +116,7 @@ npm run lint
 ```text
 src/app/                 App routes and API routes
 src/components/          Shared UI and feature components
-src/components/story/    Story creator and result components
+src/components/story/    Story result components
 src/data/                Idiom lesson data
 src/hooks/               Reusable React hooks
 src/lib/                 Idiom utilities and local storage helpers

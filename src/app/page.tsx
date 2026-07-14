@@ -1,4 +1,4 @@
-import { Archive, BookOpen, Layers, Library } from "lucide-react";
+import { Archive, Layers, Map } from "lucide-react";
 import Link from "next/link";
 import { HomeIdiomSearch, type HomeIdiomSearchItem } from "@/components/landing/HomeIdiomSearch";
 import { getAllIdioms } from "@/lib/idioms";
@@ -34,9 +34,8 @@ const homeSearchItems = allIdioms.map((idiom) => ({
 })) satisfies HomeIdiomSearchItem[];
 
 const tools = [
-  { href: "/book", label: "Lessons", icon: Library, description: "Browse all idioms by lesson" },
+  { href: "/book", label: "Lessons", icon: Map, description: "Study lessons and generate stories" },
   { href: "/cards", label: "Flash Cards", icon: Layers, description: "Study with interactive cards" },
-  { href: "/story", label: "Stories", icon: BookOpen, description: "Read idioms in context" },
   { href: "/archive", label: "Review", icon: Archive, description: "Review your saved idioms" },
 ];
 
@@ -52,7 +51,7 @@ export default function Home(): React.ReactElement {
         <HomeIdiomSearch items={homeSearchItems} />
       </div>
 
-      <div className="grid w-full max-w-2xl grid-cols-2 gap-3 mobile:gap-4">
+      <div className="grid w-full max-w-3xl grid-cols-1 gap-3 mobile:grid-cols-3 mobile:gap-4">
         {tools.map((tool) => (
           <Link
             key={tool.href}

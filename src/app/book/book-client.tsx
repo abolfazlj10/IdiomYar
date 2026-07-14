@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { toast } from "react-hot-toast";
 import {
   ArrowLeft,
   ArrowRight,
@@ -10,16 +11,20 @@ import {
   ChevronDown,
   Eye,
   EyeOff,
+  LoaderCircle,
   PanelRightOpen,
   Search,
   Settings2,
+  Sparkles,
   X,
 } from "lucide-react";
 import Appbar from "@/components/appbar";
+import ResultStory from "@/components/story/result";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { useStoryGenerator } from "@/hooks/useStory";
 import {
   findIdiomById,
   getAllIdioms,
@@ -30,6 +35,7 @@ import {
   type IdiomEntry,
 } from "@/lib/idioms";
 import {
+  addStory,
   getBookmarks,
   getProgress,
   toggleBookmark,
@@ -301,11 +307,17 @@ export default function Book({ searchParams }: BookPageProps): React.ReactElemen
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [blurMode, setBlurMode] = useState<StudyBlurMode>("persian");
   const [exampleOverrides, setExampleOverrides] = useState<Record<string, boolean>>({});
+  const [showStory, setShowStory] = useState(false);
+  const [story, setStory] = useState("");
+  const [storyFa, setStoryFa] = useState("");
+  const [storyEn, setStoryEn] = useState("");
+  const { mutate: createStory, isPending: isStoryGenerating } = useStoryGenerator();
 
   const hasSearchQuery = Boolean(query.trim());
   const trimmedQuery = query.trim();
   const lessons = useMemo(() => getLessons(activeLevel), [activeLevel]);
   const lessonIdioms = useMemo(() => getIdiomsForLesson(activeLevel, activeLesson), [activeLevel, activeLesson]);
+  const lessonStoryIdioms = useMemo(() => lessonIdioms.map((idiom) => idiom.english_phrase).filter(Boolean), [lessonIdioms]);
   const searchResults = useMemo(
     () => (hasSearchQuery ? getAllIdioms().filter((idiom) => idiomMatchesSearch(idiom, query)) : []),
     [hasSearchQuery, query]
@@ -335,6 +347,7 @@ export default function Book({ searchParams }: BookPageProps): React.ReactElemen
   const isLastVisibleIdiom = selectedIdiomIndex >= visibleIdioms.length - 1;
   const currentBlurMode = STUDY_BLUR_MODE_OPTIONS.find((mode) => mode.id === blurMode) ?? STUDY_BLUR_MODE_OPTIONS[0];
   const activeStudyLabel = hasSearchQuery ? `Search: ${trimmedQuery}` : `${activeLevelMeta.label} / Lesson ${activeLesson}`;
+  const lessonStoryLabel = `${activeLevelMeta.label} lesson ${activeLesson}`;
   const detailItems = selectedIdiom
     ? [
         { title: "English definition", text: selectedIdiom.english_definition, dir: "ltr" as const },
@@ -434,6 +447,85 @@ export default function Book({ searchParams }: BookPageProps): React.ReactElemen
   const toggleExampleOverride = (exampleKey: string): void => {
     setExampleOverrides((current) => ({ ...current, [exampleKey]: !current[exampleKey] }));
   };
+  const handleGenerateLessonStory = (): void => {
+    if (!lessonStoryIdioms.length) {
+      toast.error("No idioms found for this lesson.");
+      return;
+    }
+
+    setStory("");
+    setStoryFa("");
+    setStoryEn("");
+    setShowStory(false);
+
+    createStory(
+      {
+        idioms: lessonStoryIdioms,
+        information: `Create a lesson story for ${lessonStoryLabel}.`,
+      },
+      {
+        onSuccess: (data) => {
+          if (data.status) {
+            const nextStory = data.story || "";
+            const nextStoryFa = data.storyFa || "";
+            const nextStoryEn = data.storyEn || "";
+
+            setStory(nextStory);
+            setStoryFa(nextStoryFa);
+            setStoryEn(nextStoryEn);
+            setShowStory(true);
+            addStory({
+              idioms: lessonStoryIdioms,
+              information: lessonStoryLabel,
+              story: nextStory,
+              storyFa: nextStoryFa,
+              storyEn: nextStoryEn,
+            });
+            toast.success("Lesson story saved to Archive.");
+            return;
+          }
+
+          toast.error(data.error || data.story || "Story creation failed. Please try again.");
+        },
+        onError: (error) => {
+          toast.error(error instanceof Error ? error.message : "Story creation failed. Please try again.");
+        },
+      }
+    );
+  };
+  const renderLessonStoryButton = (): React.ReactElement => (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          type="button"
+          size="icon"
+          variant="outline"
+          aria-label={`Generate story for ${lessonStoryLabel}`}
+          onClick={handleGenerateLessonStory}
+          disabled={isStoryGenerating || !lessonStoryIdioms.length}
+          className={HEADER_ICON_BUTTON_CLASS}
+        >
+          {isStoryGenerating ? <LoaderCircle className="size-4 animate-spin" aria-hidden="true" /> : <Sparkles className="size-4" aria-hidden="true" />}
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent sideOffset={8}>{isStoryGenerating ? "Generating story" : `Generate story for ${lessonStoryLabel}`}</TooltipContent>
+    </Tooltip>
+  );
+
+  if (showStory) {
+    return (
+      <main className="flex min-h-[calc(100dvh-2rem)] min-w-0 flex-col overflow-hidden pb-4 pt-2 max-mobile:min-h-dvh max-mobile:overflow-visible">
+        <ResultStory
+          isShow={setShowStory}
+          theStory={story}
+          storyPersian={storyFa}
+          storyEnglish={storyEn}
+          title={`${lessonStoryLabel} story`}
+          iconSrc="/icon/Seedling.svg"
+        />
+      </main>
+    );
+  }
 
   return (
     <main className="flex min-h-[calc(100dvh-2rem)] min-w-0 flex-col overflow-hidden pb-24 pt-2 max-mobile:min-h-dvh max-mobile:overflow-visible">
@@ -444,7 +536,7 @@ export default function Book({ searchParams }: BookPageProps): React.ReactElemen
       <section className="flex min-h-0 flex-1 flex-col">
         <header className="mx-auto w-full max-w-5xl px-4 py-2.5 max-mobile:px-0 max-mobile:pt-0">
           <div className="hidden max-mobile:block">
-            <div className="grid grid-cols-[2.5rem_minmax(0,1fr)_2.5rem] items-center">
+            <div className="grid grid-cols-[2.5rem_minmax(0,1fr)_auto] items-center gap-1">
               <button
                 type="button"
                 onClick={() => history.back()}
@@ -459,27 +551,28 @@ export default function Book({ searchParams }: BookPageProps): React.ReactElemen
                 <img src="/icon/Seedling.svg" alt="" className="size-6 shrink-0" />
               </div>
 
-              {selectedIdiom ? (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button
-                      type="button"
-                      aria-label={isBookmarked(selectedIdiom) ? "Remove saved idiom" : "Save idiom"}
-                      onClick={() => setBookmarks(toggleBookmark(selectedIdiom))}
-                      className="inline-flex size-10 items-center justify-center rounded-full text-slate-700 transition-colors duration-150 hover:bg-white focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-primaryColor/25"
-                    >
-                      {isBookmarked(selectedIdiom) ? (
-                        <BookmarkCheck className="size-5 text-primaryColor" aria-hidden="true" />
-                      ) : (
-                        <Bookmark className="size-5" aria-hidden="true" />
-                      )}
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent sideOffset={8}>{isBookmarked(selectedIdiom) ? "Saved" : "Save idiom"}</TooltipContent>
-                </Tooltip>
-              ) : (
-                <span aria-hidden="true" />
-              )}
+              <div className="flex items-center justify-end gap-1">
+                {renderLessonStoryButton()}
+                {selectedIdiom ? (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        aria-label={isBookmarked(selectedIdiom) ? "Remove saved idiom" : "Save idiom"}
+                        onClick={() => setBookmarks(toggleBookmark(selectedIdiom))}
+                        className="inline-flex size-10 items-center justify-center rounded-full text-slate-700 transition-colors duration-150 hover:bg-white focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-primaryColor/25"
+                      >
+                        {isBookmarked(selectedIdiom) ? (
+                          <BookmarkCheck className="size-5 text-primaryColor" aria-hidden="true" />
+                        ) : (
+                          <Bookmark className="size-5" aria-hidden="true" />
+                        )}
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent sideOffset={8}>{isBookmarked(selectedIdiom) ? "Saved" : "Save idiom"}</TooltipContent>
+                  </Tooltip>
+                ) : null}
+              </div>
             </div>
 
             <div className="mt-3 grid grid-cols-2 gap-2">
@@ -534,6 +627,8 @@ export default function Book({ searchParams }: BookPageProps): React.ReactElemen
                 <span className="truncate">{currentBlurMode.label}</span>
                 <ChevronDown className={cn("size-3.5 transition-transform duration-150", settingsOpen && "rotate-180")} aria-hidden="true" />
               </Button>
+
+              {renderLessonStoryButton()}
 
               {selectedIdiom ? (
                 <Tooltip>
