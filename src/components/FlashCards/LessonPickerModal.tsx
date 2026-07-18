@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { ArrowRight, Check, ChevronDown, RotateCcw, Shuffle, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { getIdiomsForLesson, getLessons, LEVELS } from "@/lib/idioms";
+import { LEVELS, type LevelSummary } from "@/lib/idioms";
 import type { LevelId } from "@/types/types";
 
 export type LessonPickerSelection = {
@@ -24,6 +24,7 @@ type LessonPickerModalProps = {
   open: boolean;
   selectedLesson: number;
   selectedLevel: LevelId;
+  levelSummaries: LevelSummary[];
 };
 
 const levelSectionStyles = {
@@ -64,9 +65,13 @@ export function LessonPickerModal({
   open,
   selectedLesson,
   selectedLevel,
+  levelSummaries,
 }: LessonPickerModalProps): React.ReactElement {
   const [openLevels, setOpenLevels] = useState<Record<LevelId, boolean>>(() => getDefaultOpenLevels(selectedLevel));
-  const selectedCardsCount = getIdiomsForLesson(selectedLevel, selectedLesson).length;
+  const selectedCardsCount =
+    levelSummaries
+      .find((summary) => summary.id === selectedLevel)
+      ?.lessons.find((lesson) => lesson.lesson_number === selectedLesson)?.idiomCount ?? 0;
 
   useEffect(() => {
     if (open) {
@@ -109,10 +114,10 @@ export function LessonPickerModal({
           <div className="min-h-0 flex-1 overscroll-contain overflow-y-auto bg-white p-3 customScrollBarStyle mobile:p-5">
             <div className="space-y-3">
               {LEVELS.map((level) => {
-                const lessons = getLessons(level.id);
+                const lessons = levelSummaries.find((summary) => summary.id === level.id)?.lessons ?? [];
                 const lessonItems = lessons.map((lesson) => ({
                   ...lesson,
-                  cardsCount: getIdiomsForLesson(level.id, lesson.lesson_number).length,
+                  cardsCount: lesson.idiomCount,
                 }));
                 const totalCards = lessonItems.reduce((count, lesson) => count + lesson.cardsCount, 0);
                 const styles = levelSectionStyles[level.id];

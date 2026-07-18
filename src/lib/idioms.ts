@@ -1,9 +1,6 @@
-import advancedBook from "@/data/book/advanced.json";
-import elementaryBook from "@/data/book/elementry.json";
-import intermediateBook from "@/data/book/intermediate.json";
 import type { Book, Idiom, LevelId, Lesson } from "@/types/types";
 
-type LevelMeta = {
+export type LevelMeta = {
   id: LevelId;
   sourceId: "elementry" | "intermediate" | "advanced";
   label: string;
@@ -20,6 +17,17 @@ export type IdiomEntry = Idiom & {
   levelLabel: string;
   lessonNumber: number;
   lessonName: string;
+};
+
+export type LevelBooks = Partial<Record<LevelId, Book>>;
+
+export type LevelLessonSummary = Pick<Lesson, "lesson_number" | "lesson_name"> & {
+  idiomCount: number;
+};
+
+export type LevelSummary = {
+  id: LevelId;
+  lessons: LevelLessonSummary[];
 };
 
 export const LEVELS: LevelMeta[] = [
@@ -55,31 +63,25 @@ export const LEVELS: LevelMeta[] = [
   },
 ];
 
-const BOOKS: Record<LevelId, Book> = {
-  elementary: elementaryBook as Book,
-  intermediate: intermediateBook as Book,
-  advanced: advancedBook as Book,
-};
-
-export function getBook(level: LevelId): Book {
-  return BOOKS[level];
+export function isLevelId(value: unknown): value is LevelId {
+  return LEVELS.some((level) => level.id === value);
 }
 
 export function getLevelMeta(level: LevelId): LevelMeta {
   return LEVELS.find((item) => item.id === level) ?? LEVELS[0];
 }
 
-export function getLessons(level: LevelId): Lesson[] {
-  return getBook(level).levels[0]?.lessons ?? [];
+export function getLessons(book: Book | undefined): Lesson[] {
+  return book?.levels[0]?.lessons ?? [];
 }
 
 export function getIdiomId(level: LevelId, lessonNumber: number, phrase: string): string {
   return `${level}:${lessonNumber}:${phrase}`;
 }
 
-export function getIdiomsForLesson(level: LevelId, lessonNumber: number): IdiomEntry[] {
+export function getIdiomsForLesson(book: Book | undefined, level: LevelId, lessonNumber: number): IdiomEntry[] {
   const meta = getLevelMeta(level);
-  const lesson = getLessons(level).find((item) => item.lesson_number === lessonNumber);
+  const lesson = getLessons(book).find((item) => item.lesson_number === lessonNumber);
 
   if (!lesson) {
     return [];
@@ -95,16 +97,21 @@ export function getIdiomsForLesson(level: LevelId, lessonNumber: number): IdiomE
   }));
 }
 
-export function getAllIdioms(level?: LevelId): IdiomEntry[] {
+export function getAllIdioms(books: LevelBooks, level?: LevelId): IdiomEntry[] {
   const levels = level ? [level] : LEVELS.map((item) => item.id);
 
   return levels.flatMap((levelId) =>
-    getLessons(levelId).flatMap((lesson) => getIdiomsForLesson(levelId, lesson.lesson_number))
+    getLessons(books[levelId]).flatMap((lesson) =>
+      getIdiomsForLesson(books[levelId], levelId, lesson.lesson_number)
+    )
   );
 }
 
-export function findIdiomById(id: string): IdiomEntry | undefined {
-  return getAllIdioms().find((idiom) => idiom.id === id);
+export function findIdiomById(books: LevelBooks, id: string): IdiomEntry | undefined {
+  const level = id.split(":", 1)[0];
+  const levels = isLevelId(level) ? [level] : LEVELS.map((item) => item.id);
+
+  return levels.flatMap((levelId) => getAllIdioms(books, levelId)).find((idiom) => idiom.id === id);
 }
 
 export function normalizeSearch(value: string): string {

@@ -65,13 +65,13 @@ The archive stores saved stories, bookmarked idioms, and review cards so learner
 Install dependencies:
 
 ```bash
-npm install
+bun install
 ```
 
 Run the development server:
 
 ```bash
-npm run dev
+bun run dev
 ```
 
 Open the app:
@@ -93,10 +93,10 @@ Without this key, the app can still load the study pages, but AI story generatio
 ## Scripts
 
 ```bash
-npm run dev
-npm run build
-npm run start
-npm run lint
+bun run dev
+bun run check
+bun run build
+bun run start
 ```
 
 ## Tech Stack

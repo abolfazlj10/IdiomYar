@@ -1,4 +1,3 @@
-import { Analytics } from "@vercel/analytics/next"
 import type { Metadata } from "next";
 import { Toaster } from "react-hot-toast";
 import "./globals.css";

@@ -6,7 +6,8 @@ import { ArrowLeft, ArrowRight, Bookmark, Clock, Eye, EyeOff, FileText, Language
 import Appbar from "@/components/appbar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { findIdiomById, getAllIdioms, idiomMatchesSearch, type IdiomEntry } from "@/lib/idioms";
+import { useLevelBooks } from "@/hooks/use-level-books";
+import { findIdiomById, getAllIdioms, idiomMatchesSearch, isLevelId, type IdiomEntry } from "@/lib/idioms";
 import { cn } from "@/lib/utils";
 import {
   getBookmarks,
@@ -22,6 +23,7 @@ import {
 type ArchiveTab = "stories" | "bookmarks" | "review";
 
 export default function Archive(): React.ReactElement {
+  const { books, ensureLevels } = useLevelBooks();
   const [tab, setTab] = useState<ArchiveTab>("stories");
   const [query, setQuery] = useState("");
   const [stories, setStories] = useState<SavedStory[]>([]);
@@ -32,10 +34,13 @@ export default function Archive(): React.ReactElement {
   const [mobileReviewIndex, setMobileReviewIndex] = useState(0);
   const [showMobileReviewAnswer, setShowMobileReviewAnswer] = useState(false);
 
-  const reviewIdioms = useMemo(() => getAllIdioms().filter((idiom) => progress.review[idiom.id]), [progress.review]);
+  const reviewIdioms = useMemo(
+    () => getAllIdioms(books).filter((idiom) => progress.review[idiom.id]),
+    [books, progress.review]
+  );
   const bookmarkedIdioms = useMemo(
-    () => bookmarks.map((bookmark) => findIdiomById(bookmark.id)).filter(Boolean) as IdiomEntry[],
-    [bookmarks]
+    () => bookmarks.map((bookmark) => findIdiomById(books, bookmark.id)).filter(Boolean) as IdiomEntry[],
+    [bookmarks, books]
   );
   const filteredStories = stories.filter((story) =>
     [story.information, story.storyFa, story.storyEn, story.idioms.join(" ")]
@@ -58,10 +63,16 @@ export default function Archive(): React.ReactElement {
     setBookmarks(storedBookmarks);
     setProgress(storedProgress);
 
+    const requiredLevels = [
+      ...storedBookmarks.map((bookmark) => bookmark.level),
+      ...Object.keys(storedProgress.review).map((id) => id.split(":", 1)[0]).filter(isLevelId),
+    ];
+    void ensureLevels(requiredLevels);
+
     if (window.matchMedia("(max-width: 1023px)").matches && Object.keys(storedProgress.review).length > 0) {
       setTab("review");
     }
-  }, []);
+  }, [ensureLevels]);
 
   useEffect(() => {
     setMobileReviewIndex((index) => Math.min(index, Math.max(reviewIdioms.length - 1, 0)));

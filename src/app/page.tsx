@@ -1,6 +1,7 @@
 import { Archive, Layers, Map } from "lucide-react";
 import Link from "next/link";
 import { HomeIdiomSearch, type HomeIdiomSearchItem } from "@/components/landing/HomeIdiomSearch";
+import { loadBooks } from "@/lib/idiom-data.server";
 import { getAllIdioms } from "@/lib/idioms";
 
 const githubAccount = {
@@ -8,38 +9,38 @@ const githubAccount = {
   profileUrl: "https://github.com/abolfazlj10",
 };
 
-const allIdioms = getAllIdioms();
-const homeSearchItems = allIdioms.map((idiom) => ({
-  id: idiom.id,
-  englishPhrase: idiom.english_phrase,
-  persianPhrase: idiom.persian_phrase_meaning ?? null,
-  level: idiom.level,
-  levelLabel: idiom.levelLabel,
-  lessonNumber: idiom.lessonNumber,
-  href: `/book?level=${idiom.level}&lesson=${idiom.lessonNumber}&idiom=${encodeURIComponent(idiom.id)}`,
-  searchText: [
-    idiom.english_phrase,
-    idiom.persian_phrase_meaning,
-    idiom.english_definition,
-    idiom.persian_definition_meaning,
-    idiom.english_explanation,
-    idiom.persian_explanation_meaning,
-    idiom.levelLabel,
-    `lesson ${idiom.lessonNumber}`,
-    String(idiom.lessonNumber),
-  ]
-    .filter(Boolean)
-    .join(" ")
-    .toLowerCase(),
-})) satisfies HomeIdiomSearchItem[];
-
 const tools = [
   { href: "/book", label: "Lessons", icon: Map, description: "Study lessons and generate stories" },
   { href: "/cards", label: "Flash Cards", icon: Layers, description: "Study with interactive cards" },
   { href: "/archive", label: "Review", icon: Archive, description: "Review your saved idioms" },
 ];
 
-export default function Home(): React.ReactElement {
+export default async function Home(): Promise<React.ReactElement> {
+  const allIdioms = getAllIdioms(await loadBooks());
+  const homeSearchItems = allIdioms.map((idiom) => ({
+    id: idiom.id,
+    englishPhrase: idiom.english_phrase,
+    persianPhrase: idiom.persian_phrase_meaning ?? null,
+    level: idiom.level,
+    levelLabel: idiom.levelLabel,
+    lessonNumber: idiom.lessonNumber,
+    href: `/book?level=${idiom.level}&lesson=${idiom.lessonNumber}&idiom=${encodeURIComponent(idiom.id)}`,
+    searchText: [
+      idiom.english_phrase,
+      idiom.persian_phrase_meaning,
+      idiom.english_definition,
+      idiom.persian_definition_meaning,
+      idiom.english_explanation,
+      idiom.persian_explanation_meaning,
+      idiom.levelLabel,
+      `lesson ${idiom.lessonNumber}`,
+      String(idiom.lessonNumber),
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase(),
+  })) satisfies HomeIdiomSearchItem[];
+
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-14 pb-20 pt-8">
       <div className="text-center">

@@ -2,11 +2,14 @@
   "name": "idiomyar",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "bun@1.3.9",
   "scripts": {
     "dev": "next dev -p 3006",
     "build": "next build",
     "start": "next start -p 3006",
-    "lint": "next lint"
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "check": "bun run lint && bun run typecheck"
   },
   "dependencies": {
     "@radix-ui/react-collapsible": "^1.1.11",
@@ -34,8 +37,15 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "eslint": "^9.0.0",
+    "eslint-config-next": "15.3.8",
     "tailwindcss": "^4",
     "tw-animate-css": "^1.3.4",
     "typescript": "^5"
-  }
+  },
+  "trustedDependencies": [
+    "@tailwindcss/oxide",
+    "sharp",
+    "unrs-resolver"
+  ]
 }
