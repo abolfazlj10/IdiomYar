@@ -15,12 +15,13 @@ export type LessonPickerSelection = {
 };
 
 type LessonPickerModalProps = {
-  deckLength: number;
+  deckLength?: number;
+  mode?: "deck" | "lesson";
   onApply: () => void;
   onLessonSelect: (selection: LessonPickerSelection) => void;
   onOpenChange: (open: boolean) => void;
-  onResetDeck: () => void;
-  onShuffleDeck: () => void;
+  onResetDeck?: () => void;
+  onShuffleDeck?: () => void;
   open: boolean;
   selectedLesson: number;
   selectedLevel: LevelId;
@@ -56,7 +57,8 @@ function getDefaultOpenLevels(selectedLevel: LevelId): Record<LevelId, boolean> 
 }
 
 export function LessonPickerModal({
-  deckLength,
+  deckLength = 0,
+  mode = "deck",
   onApply,
   onLessonSelect,
   onOpenChange,
@@ -67,6 +69,8 @@ export function LessonPickerModal({
   selectedLevel,
   levelSummaries,
 }: LessonPickerModalProps): React.ReactElement {
+  const isLessonMode = mode === "lesson";
+  const itemLabel = isLessonMode ? "idioms" : "cards";
   const [openLevels, setOpenLevels] = useState<Record<LevelId, boolean>>(() => getDefaultOpenLevels(selectedLevel));
   const selectedCardsCount =
     levelSummaries
@@ -92,14 +96,14 @@ export function LessonPickerModal({
               <span className={cn("h-10 w-1.5 shrink-0 rounded-full", levelSectionStyles[selectedLevel].accent)} aria-hidden="true" />
               <div className="min-w-0">
                 <Dialog.Title className="truncate text-lg font-black tracking-tight text-slate-950 mobile:text-xl">
-                  Choose lesson deck
+                  {isLessonMode ? "Choose lesson" : "Choose lesson deck"}
                 </Dialog.Title>
                 <div className="mt-1 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs font-bold text-slate-500">
                   <span className="truncate">{LEVELS.find((level) => level.id === selectedLevel)?.label}</span>
                   <span aria-hidden="true">/</span>
                   <span className="tabular-nums">Lesson {selectedLesson}</span>
                   <span aria-hidden="true">/</span>
-                  <span className="tabular-nums">{selectedCardsCount} cards</span>
+                  <span className="tabular-nums">{selectedCardsCount} {itemLabel}</span>
                 </div>
               </div>
             </div>
@@ -163,7 +167,7 @@ export function LessonPickerModal({
                                 ) : null}
                               </span>
                               <span className="mt-1 block truncate text-xs font-semibold text-slate-500">
-                                Lessons {firstLesson}-{lastLesson} / {totalCards} cards
+                                Lessons {firstLesson}-{lastLesson} / {totalCards} {itemLabel}
                               </span>
                             </span>
                           </span>
@@ -186,7 +190,7 @@ export function LessonPickerModal({
                               <button
                                 key={lesson.lesson_number}
                                 type="button"
-                                aria-label={`Choose ${level.label} lesson ${lesson.lesson_number}, ${lesson.cardsCount} cards`}
+                                aria-label={`Choose ${level.label} lesson ${lesson.lesson_number}, ${lesson.cardsCount} ${itemLabel}`}
                                 aria-pressed={isActive}
                                 onClick={() => onLessonSelect({ level: level.id, lesson: lesson.lesson_number })}
                                 className={cn(
@@ -208,7 +212,7 @@ export function LessonPickerModal({
                                   {lesson.lesson_number}
                                 </span>
                                 <span className="mt-auto pt-2 text-[11px] font-black uppercase tracking-[0.08em] opacity-65 tabular-nums">
-                                  {lesson.cardsCount} cards
+                                  {lesson.cardsCount} {itemLabel}
                                 </span>
                               </button>
                             );
@@ -221,19 +225,21 @@ export function LessonPickerModal({
               })}
             </div>
 
-            <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-dashed border-slate-200 pt-4">
-              <span className="text-xs font-black uppercase tracking-[0.12em] text-slate-500">Deck order</span>
-              <div className="grid grid-cols-2 gap-2">
-                <Button type="button" variant="outline" size="sm" onClick={onShuffleDeck} disabled={!deckLength}>
-                  <Shuffle className="size-4" />
-                  Shuffle
-                </Button>
-                <Button type="button" variant="outline" size="sm" onClick={onResetDeck} disabled={!deckLength}>
-                  <RotateCcw className="size-4" />
-                  Reset
-                </Button>
+            {!isLessonMode ? (
+              <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-dashed border-slate-200 pt-4">
+                <span className="text-xs font-black uppercase tracking-[0.12em] text-slate-500">Deck order</span>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button type="button" variant="outline" size="sm" onClick={onShuffleDeck} disabled={!deckLength}>
+                    <Shuffle className="size-4" />
+                    Shuffle
+                  </Button>
+                  <Button type="button" variant="outline" size="sm" onClick={onResetDeck} disabled={!deckLength}>
+                    <RotateCcw className="size-4" />
+                    Reset
+                  </Button>
+                </div>
               </div>
-            </div>
+            ) : null}
           </div>
 
           <div className="flex flex-row items-center justify-end gap-2 border-t border-slate-200 bg-slate-50/80 px-4 py-3 mobile:px-5">
@@ -243,7 +249,7 @@ export function LessonPickerModal({
               </Button>
             </Dialog.Close>
             <Button type="button" onClick={onApply} className="shrink-0">
-              Start lesson
+              {isLessonMode ? "Open lesson" : "Start lesson"}
               <ArrowRight className="size-4" />
             </Button>
           </div>

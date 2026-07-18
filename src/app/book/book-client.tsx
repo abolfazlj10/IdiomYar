@@ -16,6 +16,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import Appbar from "@/components/appbar";
+import { LessonPickerModal, type LessonPickerSelection } from "@/components/FlashCards/LessonPickerModal";
 import ResultStory from "@/components/story/result";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -205,6 +206,11 @@ export default function Book({ initialBook, initialLevel, levelSummaries, search
   const [progress, setProgress] = useState<StudyProgress>({ studied: {}, known: {}, review: {} });
   const [bookmarks, setBookmarks] = useState<StoredBookmark[]>([]);
   const [studyToolsOpen, setStudyToolsOpen] = useState(false);
+  const [lessonPickerOpen, setLessonPickerOpen] = useState(false);
+  const [draftLevel, setDraftLevel] = useState<LevelId>(requestedPosition?.level ?? initialLevel ?? DEFAULT_LEVEL);
+  const [draftLesson, setDraftLesson] = useState<number>(
+    requestedPosition?.lesson ?? getFirstLessonNumber(levelSummaries, requestedPosition?.level ?? initialLevel)
+  );
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [blurMode, setBlurMode] = useState<StudyBlurMode>("persian");
   const [exampleOverrides, setExampleOverrides] = useState<Record<string, boolean>>({});
@@ -250,7 +256,7 @@ export default function Book({ initialBook, initialLevel, levelSummaries, search
   const isFirstVisibleIdiom = selectedIdiomIndex <= 0;
   const isLastVisibleIdiom = selectedIdiomIndex >= visibleIdioms.length - 1;
   const currentBlurMode = STUDY_BLUR_MODE_OPTIONS.find((mode) => mode.id === blurMode) ?? STUDY_BLUR_MODE_OPTIONS[0];
-  const activeStudyLabel = hasSearchQuery ? `Search: ${trimmedQuery}` : `${activeLevelMeta.label} / Lesson ${activeLesson}`;
+  const activeStudyLabel = hasSearchQuery ? `Search: ${trimmedQuery}` : `Lesson ${activeLesson}`;
   const lessonStoryLabel = `${activeLevelMeta.label} lesson ${activeLesson}`;
   const detailItems = selectedIdiom
     ? [
@@ -312,6 +318,23 @@ export default function Book({ initialBook, initialLevel, levelSummaries, search
     setSelectedIdiomId("");
     setQuery("");
     setStudyToolsOpen(false);
+  };
+  const openLessonPicker = (): void => {
+    setDraftLevel(activeLevel);
+    setDraftLesson(activeLesson);
+    setLessonPickerOpen(true);
+  };
+  const handleDraftLessonSelect = ({ level, lesson }: LessonPickerSelection): void => {
+    setDraftLevel(level);
+    setDraftLesson(lesson);
+  };
+  const applyDraftLesson = async (): Promise<void> => {
+    await ensureLevel(draftLevel);
+    setActiveLevel(draftLevel);
+    setActiveLesson(draftLesson);
+    setSelectedIdiomId("");
+    setQuery("");
+    setLessonPickerOpen(false);
   };
   const handleSelectIdiom = (idiom: IdiomEntry): void => {
     setSelectedIdiomId(idiom.id);
@@ -490,7 +513,7 @@ export default function Book({ initialBook, initialLevel, levelSummaries, search
             <div className="mt-3 grid grid-cols-2 gap-2">
               <button
                 type="button"
-                onClick={() => setStudyToolsOpen(true)}
+                onClick={openLessonPicker}
                 className="flex min-h-13 min-w-0 items-center gap-2 rounded-lg border border-gray-200 bg-white/90 px-3 text-left text-slate-700 shadow-sm transition-[background-color,border-color,box-shadow] duration-150 hover:border-primaryColor/35 hover:bg-white focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-primaryColor/25"
               >
                 <PanelRightOpen className="size-4 shrink-0 text-slate-500" aria-hidden="true" />
@@ -521,7 +544,7 @@ export default function Book({ initialBook, initialLevel, levelSummaries, search
           </div>
 
           <div className="flex flex-wrap items-center justify-between gap-2.5 max-mobile:hidden">
-            <Button type="button" variant="outline" onClick={() => setStudyToolsOpen(true)} className={cn("min-w-0 justify-start", HEADER_TOOL_BUTTON_CLASS)}>
+            <Button type="button" variant="outline" onClick={openLessonPicker} className={cn("min-w-0 justify-start", HEADER_TOOL_BUTTON_CLASS)}>
               <PanelRightOpen className="size-3.5" aria-hidden="true" />
               <span className="truncate">{activeStudyLabel}</span>
             </Button>
@@ -732,6 +755,17 @@ export default function Book({ initialBook, initialLevel, levelSummaries, search
         onQueryChange={setQuery}
         onClearSearch={clearSearch}
         onIdiomSelect={handleSelectIdiom}
+      />
+
+      <LessonPickerModal
+        mode="lesson"
+        onApply={() => void applyDraftLesson()}
+        onLessonSelect={handleDraftLessonSelect}
+        onOpenChange={setLessonPickerOpen}
+        open={lessonPickerOpen}
+        selectedLesson={draftLesson}
+        selectedLevel={draftLevel}
+        levelSummaries={levelSummaries}
       />
     </main>
   );
