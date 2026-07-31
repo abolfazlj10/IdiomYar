@@ -857,8 +857,8 @@ export default function Cards({ initialBook, initialLevel, levelSummaries, searc
 
                   <Button
                     type="button"
-                    size="icon"
-                    variant={showAnswer ? "outline" : "default"}
+                    size="icon-md"
+                    variant={showAnswer ? "outline" : "primary"}
                     onClick={showAnswer ? hideCurrentCardAnswer : revealCurrentCard}
                     className="size-12 justify-self-center"
                     aria-label={showAnswer ? "Hide answer" : "Reveal answer"}

@@ -161,9 +161,12 @@ export default function Archive(): React.ReactElement {
             ) : null}
           </div>
 
-          <Button asChild variant="outline" className={cn("w-full", tab === "review" && "max-laptop:hidden")}>
-            <Link href="/cards?mode=review">Restart review deck</Link>
-          </Button>
+          <Button
+            render={<Link href="/cards?mode=review">Restart review deck</Link>}
+            nativeButton={false}
+            variant="outline"
+            className={cn("w-full", tab === "review" && "max-laptop:hidden")}
+          />
         </aside>
 
         {tab === "review" ? (
@@ -417,8 +420,8 @@ function MobileReviewDeck({
 
         <Button
           type="button"
-          size="icon"
-          variant={showAnswer ? "outline" : "default"}
+          size="icon-md"
+          variant={showAnswer ? "outline" : "primary"}
           onClick={() => onAnswerVisibilityChange(!showAnswer)}
           aria-label={showAnswer ? "Hide answer" : "Reveal answer"}
           aria-pressed={showAnswer}

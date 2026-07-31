@@ -4,7 +4,7 @@ import type * as React from "react";
 import { ArrowLeft, ArrowRight, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Drawer, DrawerBody, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from "@appica/ui-react/drawer";
 import { getIdiomsForLesson, getLessons, LEVELS, type IdiomEntry } from "@/lib/idioms";
 import type { StudyPosition } from "@/lib/study-navigation";
 import type { RecallStatus, StudyProgress } from "@/lib/storage";
@@ -101,7 +101,7 @@ export function BottomStudyNav({
         </div>
         <Button
           type="button"
-          variant="default"
+          variant="primary"
           onClick={onNext}
           disabled={nextDisabled}
           aria-label={nextAriaLabel}
@@ -169,14 +169,14 @@ export function StudyToolsSheet({
   onIdiomSelect: (idiom: IdiomEntry) => void;
 }): React.ReactElement {
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-[min(100vw,440px)] gap-0 bg-white p-0 sm:max-w-md">
-        <SheetHeader className="border-b border-gray-100 p-4 text-left">
-          <SheetTitle className="text-base font-black">Study tools</SheetTitle>
-          <SheetDescription className="text-xs leading-5">Choose a level, jump to a lesson, or search all idioms.</SheetDescription>
-        </SheetHeader>
+    <Drawer open={open} onOpenChange={onOpenChange} side="right">
+      <DrawerContent className="w-[min(100vw,440px)] max-w-md">
+        <DrawerHeader className="border-b border-gray-100 p-4 text-left">
+          <DrawerTitle className="text-base font-black">Study tools</DrawerTitle>
+          <DrawerDescription className="text-xs leading-5">Choose a level, jump to a lesson, or search all idioms.</DrawerDescription>
+        </DrawerHeader>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 customScrollBarStyle">
+        <DrawerBody className="min-h-0 flex-1 overflow-y-auto px-4 py-4 customScrollBarStyle">
           <section aria-labelledby="levels-heading">
             <h3 id="levels-heading" className="text-[11px] font-black uppercase tracking-wide text-gray-500">
               Levels
@@ -327,9 +327,9 @@ export function StudyToolsSheet({
               </div>
             )}
           </section>
-        </div>
-      </SheetContent>
-    </Sheet>
+        </DrawerBody>
+      </DrawerContent>
+    </Drawer>
   );
 }
 
