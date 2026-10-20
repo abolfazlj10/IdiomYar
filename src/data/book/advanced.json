@@ -75,7 +75,21 @@
               "english_definition": "to return a bought or borrowed item (also: to take back) (S)",
               "persian_definition_meaning": "بازگرداندن یک کالای خریداری شده یا قرض گرفته شده (همچنین: to take back) (قابل تفکیک)",
               "english_explanation": "To bring back is used when you are speaking at the place that speaking at another place.",
-              "persian_explanation_meaning": "To bring back زمانی استفاده می‌شود که در محلی صحبت می‌کنید که به مکان دیگری اشاره دارد."
+              "persian_explanation_meaning": "To bring back زمانی استفاده می‌شود که در محلی صحبت می‌کنید که به مکان دیگری اشاره دارد.",
+              "examples": [
+                {
+                  "english_text": "Ma'am, our store policy is that you can bring back the dress as long as you have your sales receipt.",
+                  "persian_meaning": "خانم، سیاست فروشگاه ما این است که تا وقتی رسید خرید را داشته باشید، می‌توانید لباس را پس بیاورید."
+                },
+                {
+                  "english_text": "You can borrow my car if you promise to bring it back by six o'clock.",
+                  "persian_meaning": "اگر قول بدهی تا ساعت شش برش گردانی، می‌توانی ماشینم را قرض بگیری."
+                },
+                {
+                  "english_text": "I have to take this book back to the library today.",
+                  "persian_meaning": "امروز باید این کتاب را به کتابخانه برگردانم."
+                }
+              ]
             },
             {
               "english_phrase": "to wait up for",
@@ -119,7 +133,17 @@
               "english_definition": "and certainly not (also: not to mention, to say nothing of)",
               "persian_definition_meaning": "و قطعاً نه (همچنین: not to mention, to say nothing of)",
               "english_explanation": "Let alone is used after negative forms. The example that follows let alone is much less possible than the example that precedes let alone.",
-              "persian_explanation_meaning": "Let alone بعد از اشکال منفی استفاده می‌شود. مثالی که بعد از let alone می‌آید، بسیار کمتر ممکن است از مثالی که قبل از آن می‌آید."
+              "persian_explanation_meaning": "Let alone بعد از اشکال منفی استفاده می‌شود. مثالی که بعد از let alone می‌آید، بسیار کمتر ممکن است از مثالی که قبل از آن می‌آید.",
+              "examples": [
+                {
+                  "english_text": "I'm too sick today to walk to the kitchen, let alone to go to the zoo with you.",
+                  "persian_meaning": "امروز آن‌قدر مریضم که نمی‌توانم تا آشپزخانه راه بروم، چه برسد به اینکه با تو به باغ‌وحش بیایم."
+                },
+                {
+                  "english_text": "He doesn't even speak his own language well, let alone French.",
+                  "persian_meaning": "او حتی زبان خودش را هم خوب صحبت نمی‌کند، چه برسد به فرانسوی."
+                }
+              ]
             },
             {
               "english_phrase": "to break off",
@@ -163,7 +187,25 @@
               "english_definition": "to become worn gradually through use (also: to wear away, to wear through) (S)",
               "persian_definition_meaning": "به تدریج از طریق استفاده فرسوده شدن (همچنین: to wear away, to wear through) (قابل تفکیک)",
               "english_explanation": "Compare with to wear out (to become useless from wear) in Lesson 8.",
-              "persian_explanation_meaning": "با 'to wear out' (بی‌مصرف شدن از فرسایش) در درس ۸ مقایسه کنید."
+              "persian_explanation_meaning": "با 'to wear out' (بی‌مصرف شدن از فرسایش) در درس ۸ مقایسه کنید.",
+              "examples": [
+                {
+                  "english_text": "If you drag your feet while you walk, you'll wear down your shoes quickly.",
+                  "persian_meaning": "اگر موقع راه رفتن پاهایت را روی زمین بکشی، کفش‌هایت زود ساییده می‌شوند."
+                },
+                {
+                  "english_text": "The pounding of ocean waves against the coast gradually wears it away.",
+                  "persian_meaning": "کوبیده شدن امواج اقیانوس به ساحل، به‌تدریج آن را فرسوده می‌کند."
+                },
+                {
+                  "english_text": "Johnny has worn through the seat of his pants.",
+                  "persian_meaning": "پشت شلوار جانی از بس استفاده شده، سوراخ شده است."
+                },
+                {
+                  "english_text": "Helga threw away that dress because she had worn it out.",
+                  "persian_meaning": "هلگا آن لباس را دور انداخت چون از بس پوشیده بودش، دیگر قابل استفاده نبود."
+                }
+              ]
             },
             {
               "english_phrase": "on the whole",
@@ -311,7 +353,17 @@
               "english_definition": "to purchase a business or company (S); to purchase all of a person's shares or stock (S)",
               "persian_definition_meaning": "خریدن یک کسب‌وکار یا شرکت (قابل تفکیک)؛ خریدن تمام سهام یا سهام یک فرد (قابل تفکیک)",
               "english_explanation": "This idiom is similar in meaning to take over in Lesson 23.",
-              "persian_explanation_meaning": "این اصطلاح از نظر معنی شبیه 'take over' در درس ۲۳ است."
+              "persian_explanation_meaning": "این اصطلاح از نظر معنی شبیه 'take over' در درس ۲۳ است.",
+              "examples": [
+                {
+                  "english_text": "Larger companies often buy out smaller companies that are having financial difficulties.",
+                  "persian_meaning": "شرکت‌های بزرگ‌تر اغلب شرکت‌های کوچک‌تری را که مشکلات مالی دارند، خریداری می‌کنند."
+                },
+                {
+                  "english_text": "Mr. Lee has been trying for some time to buy his partner out so that he can control the company by himself.",
+                  "persian_meaning": "آقای لی مدتی است تلاش می‌کند سهم شریکش را بخرد تا بتواند شرکت را به‌تنهایی اداره کند."
+                }
+              ]
             },
             {
               "english_phrase": "to sell out",
@@ -337,7 +389,21 @@
               "english_definition": "to become popular or widespread; to understand, to appreciate a joke",
               "persian_definition_meaning": "محبوب یا رایج شدن؛ فهمیدن، درک کردن یک شوخی",
               "english_explanation": "This idiom is often used with the preposition to for the second definition.",
-              "persian_explanation_meaning": "این اصطلاح اغلب با حرف اضافه 'to' برای تعریف دوم استفاده می‌شود."
+              "persian_explanation_meaning": "این اصطلاح اغلب با حرف اضافه 'to' برای تعریف دوم استفاده می‌شود.",
+              "examples": [
+                {
+                  "english_text": "Fashions of the past often catch on again among young people.",
+                  "persian_meaning": "مدهای گذشته اغلب دوباره بین جوانان رایج می‌شوند."
+                },
+                {
+                  "english_text": "When the teacher speaks quickly like that, can you catch on easily?",
+                  "persian_meaning": "وقتی معلم آن‌طور تند صحبت می‌کند، می‌توانی به‌راحتی متوجه شوی؟"
+                },
+                {
+                  "english_text": "His joke was very funny at the time, but when I told it to others later, nobody seemed to catch on. I had to tell the joke again before anyone could catch on to it.",
+                  "persian_meaning": "شوخی‌اش آن موقع خیلی خنده‌دار بود، اما وقتی بعداً آن را برای دیگران تعریف کردم، به نظر می‌رسید هیچ‌کس متوجه نشد. مجبور شدم شوخی را دوباره تعریف کنم تا کسی آن را بفهمد."
+                }
+              ]
             },
             {
               "english_phrase": "to be cut out for",
@@ -345,7 +411,17 @@
               "english_definition": "to have the necessary skills or talent for",
               "persian_definition_meaning": "داشتن مهارت‌ها یا استعداد لازم برای",
               "english_explanation": "The idiom is most often used in the negative or in questions.",
-              "persian_explanation_meaning": "این اصطلاح اغلب به صورت منفی یا در سوالات استفاده می‌شود."
+              "persian_explanation_meaning": "این اصطلاح اغلب به صورت منفی یا در سوالات استفاده می‌شود.",
+              "examples": [
+                {
+                  "english_text": "John is certainly not cut out for the work of a trial lawyer.",
+                  "persian_meaning": "جان مطمئناً برای کار وکالت دادگاه ساخته نشده است."
+                },
+                {
+                  "english_text": "Are you certain that you are cut out for that kind of job?",
+                  "persian_meaning": "مطمئنی که برای آن نوع کار مناسب هستی؟"
+                }
+              ]
             },
             {
               "english_phrase": "to throw out",
@@ -417,7 +493,21 @@
               "english_definition": "to go, or cause to go, more slowly (also: to slow up) (S)",
               "persian_definition_meaning": "آهسته‌تر رفتن، یا باعث آهسته‌تر رفتن شدن (همچنین: to slow up) (قابل تفکیک)",
               "english_explanation": "This idiom can be used both with and without an object.",
-              "persian_explanation_meaning": "این اصطلاح می‌تواند با و بدون مفعول استفاده شود."
+              "persian_explanation_meaning": "این اصطلاح می‌تواند با و بدون مفعول استفاده شود.",
+              "examples": [
+                {
+                  "english_text": "The car was going so fast that the motorist couldn't slow it down enough to make the sharp curve.",
+                  "persian_meaning": "ماشین آن‌قدر سریع می‌رفت که راننده نتوانست سرعتش را به اندازه‌ی کافی کم کند تا از پیچ تند رد شود."
+                },
+                {
+                  "english_text": "You're eating too fast to digest your food well. Slow down!",
+                  "persian_meaning": "آن‌قدر تند غذا می‌خوری که نمی‌توانی آن را خوب هضم کنی. آرام‌تر!"
+                },
+                {
+                  "english_text": "Slow up a bit! You're talking so quickly that I can't catch on well.",
+                  "persian_meaning": "کمی آرام‌تر! آن‌قدر تند حرف می‌زنی که نمی‌توانم خوب متوجه شوم."
+                }
+              ]
             },
             {
               "english_phrase": "to dry up",
@@ -461,7 +551,17 @@
               "english_definition": "to be doing something; to be planning or plotting something, scheming",
               "persian_definition_meaning": "مشغول انجام کاری بودن؛ در حال برنامه‌ریزی یا توطئه کردن چیزی بودن، نقشه‌کشی کردن",
               "english_explanation": "The first definition usually takes the form of a question.",
-              "persian_explanation_meaning": "تعریف اول معمولاً به شکل سوال استفاده می‌شود."
+              "persian_explanation_meaning": "تعریف اول معمولاً به شکل سوال استفاده می‌شود.",
+              "examples": [
+                {
+                  "english_text": "I don't care whether we go to the reception or not. It's up to you.",
+                  "persian_meaning": "برایم فرقی نمی‌کند که به مهمانی برویم یا نه. تصمیمش با توست."
+                },
+                {
+                  "english_text": "Hi, George. I haven't seen you in a while. What have you been up to?",
+                  "persian_meaning": "سلام جورج. مدتی است ندیدمت. این روزها چه کار می‌کنی؟"
+                }
+              ]
             },
             {
               "english_phrase": "to beat around the bush",
@@ -487,7 +587,17 @@
               "english_definition": "to end, to stop",
               "persian_definition_meaning": "پایان یافتن، متوقف شدن",
               "english_explanation": "This idiom is used with finally and never when some activity lasts too long.",
-              "persian_explanation_meaning": "این اصطلاح با 'finally' و 'never' زمانی استفاده می‌شود که فعالیتی بیش از حد طول بکشد."
+              "persian_explanation_meaning": "این اصطلاح با 'finally' و 'never' زمانی استفاده می‌شود که فعالیتی بیش از حد طول بکشد.",
+              "examples": [
+                {
+                  "english_text": "The meeting finally came to an end at ten o'clock in the evening.",
+                  "persian_meaning": "جلسه سرانجام ساعت ده شب به پایان رسید."
+                },
+                {
+                  "english_text": "Even though my friend seemed to enjoy the movie, I thought that it would never come to an end.",
+                  "persian_meaning": "با اینکه به نظر می‌رسید دوستم از فیلم لذت می‌برد، من فکر می‌کردم هیچ‌وقت تمام نمی‌شود."
+                }
+              ]
             },
             {
               "english_phrase": "to put an end to",
@@ -513,7 +623,17 @@
               "english_definition": "to seek revenge, to retaliate",
               "persian_definition_meaning": "به دنبال انتقام بودن، تلافی کردن",
               "english_explanation": "This idiom is similar in meaning to to have it in for in Lesson 27.",
-              "persian_explanation_meaning": "این اصطلاح از نظر معنی شبیه 'to have it in for' در درس ۲۷ است."
+              "persian_explanation_meaning": "این اصطلاح از نظر معنی شبیه 'to have it in for' در درس ۲۷ است.",
+              "examples": [
+                {
+                  "english_text": "Bill has had it in for his boss for a long time. He told me he's planning to get even with his boss by giving some company secrets to a competitor.",
+                  "persian_meaning": "بیل مدت زیادی است که از رئیسش کینه به دل دارد. به من گفت قصد دارد با دادن برخی اسرار شرکت به یک رقیب، از رئیسش انتقام بگیرد."
+                },
+                {
+                  "english_text": "I want to get even with Steve for beating me so badly in tennis last time. The scores were 6-1 and 6-2.",
+                  "persian_meaning": "می‌خواهم تلافی دفعه‌ی قبل را سر استیو در بیاورم که در تنیس آن‌قدر بد شکستم داد. امتیازها ۶-۱ و ۶-۲ بود."
+                }
+              ]
             },
             {
               "english_phrase": "to fool around",
@@ -603,7 +723,17 @@
               "english_definition": "to undergo, to experience; to consume, to use (also: to use up)",
               "persian_definition_meaning": "تحمل کردن، تجربه کردن؛ مصرف کردن، استفاده کردن (همچنین: to use up)",
               "english_explanation": "The first definition is used when someone is having some hardship or difficulty.",
-              "persian_explanation_meaning": "تعریف اول زمانی استفاده می‌شود که کسی با سختی یا دشواری مواجه است."
+              "persian_explanation_meaning": "تعریف اول زمانی استفاده می‌شود که کسی با سختی یا دشواری مواجه است.",
+              "examples": [
+                {
+                  "english_text": "I can't believe what she went through to get that job. She had four interviews with the hiring committee in one week!",
+                  "persian_meaning": "باورم نمی‌شود برای گرفتن آن شغل چه چیزهایی را از سر گذراند. در یک هفته چهار مصاحبه با کمیته‌ی استخدام داشت!"
+                },
+                {
+                  "english_text": "Frank said that they had gone through all the toilet paper in the house, but Steve couldn't believe that they had used it all up.",
+                  "persian_meaning": "فرانک گفت که همه‌ی دستمال توالت خانه را مصرف کرده‌اند، اما استیو باورش نمی‌شد که همه‌اش را تمام کرده باشند."
+                }
+              ]
             },
             {
               "english_phrase": "to go without saying",
@@ -611,7 +741,17 @@
               "english_definition": "to be known without the need to mention",
               "persian_definition_meaning": "بدون نیاز به ذکر شناخته شده بودن",
               "english_explanation": "This idiom occurs with a that-clause, often with the pronoun it as the subject.",
-              "persian_explanation_meaning": "این اصطلاح با یک عبارت that-clause، اغلب با ضمیر it به عنوان فاعل، رخ می‌دهد."
+              "persian_explanation_meaning": "این اصطلاح با یک عبارت that-clause، اغلب با ضمیر it به عنوان فاعل، رخ می‌دهد.",
+              "examples": [
+                {
+                  "english_text": "It goes without saying that you shouldn't drive quickly in bad weather.",
+                  "persian_meaning": "ناگفته پیداست که در هوای بد نباید با سرعت رانندگی کنی."
+                },
+                {
+                  "english_text": "That he will gain weight if he continues to eat and drink so much goes without saying.",
+                  "persian_meaning": "این که اگر همین‌قدر زیاد بخورد و بنوشد وزن اضافه می‌کند، ناگفته پیداست."
+                }
+              ]
             },
             {
               "english_phrase": "to put (someone) on",
@@ -619,7 +759,17 @@
               "english_definition": "to mislead by joking or tricking (S)",
               "persian_definition_meaning": "با شوخی یا فریب گمراه کردن (قابل تفکیک)",
               "english_explanation": "This idiom is usually used in a continuous tense form. A noun object must divide the idiom.",
-              "persian_explanation_meaning": "این اصطلاح معمولاً در حالت استمراری استفاده می‌شود. یک مفعول اسمی باید اصطلاح را از هم جدا کند."
+              "persian_explanation_meaning": "این اصطلاح معمولاً در حالت استمراری استفاده می‌شود. یک مفعول اسمی باید اصطلاح را از هم جدا کند.",
+              "examples": [
+                {
+                  "english_text": "Don't worry. I wouldn't expect you to do all that work by yourself. I'm just putting you on.",
+                  "persian_meaning": "نگران نباش. انتظار ندارم آن همه کار را تنهایی انجام بدهی. فقط دارم سر به سرت می‌گذارم."
+                },
+                {
+                  "english_text": "Jack can't be serious about what he said. He must be putting us on.",
+                  "persian_meaning": "جک نمی‌تواند درباره‌ی حرفی که زد جدی باشد. حتماً دارد سر به سرمان می‌گذارد."
+                }
+              ]
             },
             {
               "english_phrase": "to keep one's head",
@@ -753,7 +903,17 @@
               "english_definition": "not be able to convince someone",
               "persian_definition_meaning": "قادر به متقاعد کردن کسی نبودن",
               "english_explanation": "This idiom is used when someone is wasting time trying to convince another person. The idiom to save one's breath is related and means not to waste effort trying to convince someone.",
-              "persian_explanation_meaning": "این اصطلاح زمانی استفاده می‌شود که کسی وقت خود را صرف تلاش برای متقاعد کردن شخص دیگری می‌کند. اصطلاح 'to save one's breath' مرتبط است و به معنی تلف نکردن تلاش برای متقاعد کردن کسی است."
+              "persian_explanation_meaning": "این اصطلاح زمانی استفاده می‌شود که کسی وقت خود را صرف تلاش برای متقاعد کردن شخص دیگری می‌کند. اصطلاح 'to save one's breath' مرتبط است و به معنی تلف نکردن تلاش برای متقاعد کردن کسی است.",
+              "examples": [
+                {
+                  "english_text": "Don't argue with Frank any longer. You are wasting your breath trying to get him to agree with you.",
+                  "persian_meaning": "دیگر با فرانک بحث نکن. داری بیهوده تلاش می‌کنی که او را با خودت موافق کنی."
+                },
+                {
+                  "english_text": "I have already decided what I'm going to do. You can't change my mind, so save your breath.",
+                  "persian_meaning": "من قبلاً تصمیمم را گرفته‌ام که چه کار کنم. نمی‌توانی نظرم را عوض کنی، پس خودت را خسته نکن."
+                }
+              ]
             },
             {
               "english_phrase": "to cut short",
@@ -825,7 +985,17 @@
               "english_definition": "to treat severely, to discipline; to go faster, to work more quickly",
               "persian_definition_meaning": "با شدت رفتار کردن، انضباط دادن؛ سریع‌تر رفتن، سریع‌تر کار کردن",
               "english_explanation": "For the second definition, the idiom is followed by the pronoun it.",
-              "persian_explanation_meaning": "برای تعریف دوم، اصطلاح با ضمیر 'it' دنبال می‌شود."
+              "persian_explanation_meaning": "برای تعریف دوم، اصطلاح با ضمیر 'it' دنبال می‌شود.",
+              "examples": [
+                {
+                  "english_text": "Sometimes it's necessary to step on children when they do something dangerous.",
+                  "persian_meaning": "گاهی لازم است وقتی بچه‌ها کار خطرناکی می‌کنند، با آن‌ها سخت‌گیری کرد."
+                },
+                {
+                  "english_text": "We're going to be late for the movies. You'd better step on it!",
+                  "persian_meaning": "برای سینما دیرمان می‌شود. بهتر است عجله کنی!"
+                }
+              ]
             },
             {
               "english_phrase": "a steal",
@@ -833,7 +1003,17 @@
               "english_definition": "very inexpensive, a bargain",
               "persian_definition_meaning": "بسیار ارزان، یک معامله خوب",
               "english_explanation": "This idiom is often used in an exclamation using what.",
-              "persian_explanation_meaning": "این اصطلاح اغلب در یک عبارت تعجبی با استفاده از 'what' به کار می‌رود."
+              "persian_explanation_meaning": "این اصطلاح اغلب در یک عبارت تعجبی با استفاده از 'what' به کار می‌رود.",
+              "examples": [
+                {
+                  "english_text": "I can't believe that I paid only $2,000 for this three-year-old car. What a steal!",
+                  "persian_meaning": "باورم نمی‌شود که فقط ۲۰۰۰ دلار برای این ماشین سه‌ساله پرداختم. چه مفت!"
+                },
+                {
+                  "english_text": "Scott considered it a steal when he bought a complete bedroom set for only $99.",
+                  "persian_meaning": "اسکات وقتی یک سرویس کامل اتاق خواب را فقط ۹۹ دلار خرید، آن را خیلی ارزان دانست."
+                }
+              ]
             },
             {
               "english_phrase": "to play up to",
@@ -967,7 +1147,17 @@
               "english_definition": "available, nearby",
               "persian_definition_meaning": "در دسترس، نزدیک",
               "english_explanation": "This idiom is often followed by in case.",
-              "persian_explanation_meaning": "این اصطلاح اغلب با 'in case' دنبال می‌شود."
+              "persian_explanation_meaning": "این اصطلاح اغلب با 'in case' دنبال می‌شود.",
+              "examples": [
+                {
+                  "english_text": "I always keep some extra money on hand in case I forget to get cash from the bank.",
+                  "persian_meaning": "همیشه مقداری پول اضافه دم دستم نگه می‌دارم، در صورتی که یادم برود از بانک پول نقد بگیرم."
+                },
+                {
+                  "english_text": "The concert organizers arranged to have some security guards on hand in case there were any problems during the performance.",
+                  "persian_meaning": "برگزارکنندگان کنسرت ترتیبی دادند که چند نگهبان امنیتی در محل حاضر باشند، در صورتی که در طول اجرا مشکلی پیش بیاید."
+                }
+              ]
             }
           ]
         },

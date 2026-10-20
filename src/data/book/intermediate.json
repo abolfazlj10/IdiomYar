@@ -486,11 +486,11 @@
               "persian_explanation_meaning": null,
               "examples": [
                 {
-                  "english_text": "You should watch your step when you hike on taht trail; it's very steep and dangerous.",
+                  "english_text": "You should watch your step when you hike on that trail; it's very steep and dangerous.",
                   "persian_meaning": "باید مراقب قدم‌هات باشی وقتی کوهنوردی میکنی، خیلی شیب دار و خطرناکه."
                 },
                 {
-                  "english_text": "The workers put up a sign that said 'Watch Your Step!' no warn people about the hole in the sidewalk",
+                  "english_text": "The workers put up a sign that said 'Watch Your Step!' to warn people about the hole in the sidewalk.",
                   "persian_meaning": "کارگران تابلویی نصب کردند که نوشته بود احتیاط کنید، به منظور هشدار در مورد چاله در پیاده‌رو."
                 }
               ]
@@ -505,11 +505,11 @@
               "examples": [
                 {
                   "english_text": "Watch what you say about Oliver's weight. He's very sensitive about it.",
-                  "persian_meaning": "مراقب حرف زدنت در مورد وزن الیویرا باش اون خیلی حساسه."
+                  "persian_meaning": "مراقب حرف زدنت در مورد وزن الیور باش اون خیلی حساسه."
                 },
                 {
-                  "english_text": "If vasil doesn't watch what he does, he's going to get himslef into trouble at work.",
-                  "persian_meaning": "اگه وسیل مراقب کارهاش نباشه اون اون خودشو توی دردسر میندازه در کارش."
+                  "english_text": "If Vasil doesn't watch what he does, he's going to get himself into trouble at work.",
+                  "persian_meaning": "اگه وسیل مراقب کارهاش نباشه اون خودشو توی دردسر میندازه در کارش."
                 }
               ]
             },
@@ -2747,7 +2747,17 @@
               "english_definition": "to cause to happen",
               "persian_definition_meaning": "باعث وقوع چیزی شدن",
               "english_explanation": "This idiom is used to indicate who or what caused something to come about.",
-              "persian_explanation_meaning": "این اصطلاح برای نشان دادن اینکه چه کسی یا چه چیزی باعث وقوع چیزی شده است، استفاده می‌شود."
+              "persian_explanation_meaning": "این اصطلاح برای نشان دادن اینکه چه کسی یا چه چیزی باعث وقوع چیزی شده است، استفاده می‌شود.",
+              "examples": [
+                {
+                  "english_text": "John brought about the accident because of his carelessness.",
+                  "persian_meaning": "جان به خاطر بی‌احتیاطی‌اش باعث آن تصادف شد."
+                },
+                {
+                  "english_text": "The heavy rains we have each spring bring about serious flooding.",
+                  "persian_meaning": "باران‌های شدیدی که هر بهار داریم باعث سیل‌های جدی می‌شوند."
+                }
+              ]
             },
             {
               "english_phrase": "to build up",
@@ -2985,7 +2995,17 @@
               "english_definition": "to fail to materialize, not to succeed",
               "persian_definition_meaning": "محقق نشدن، موفق نشدن",
               "english_explanation": "This idiom is usually used with the noun plan or plans as the subject.",
-              "persian_explanation_meaning": "این اصطلاح معمولاً با اسم 'plan' یا 'plans' به عنوان فاعل استفاده می‌شود."
+              "persian_explanation_meaning": "این اصطلاح معمولاً با اسم 'plan' یا 'plans' به عنوان فاعل استفاده می‌شود.",
+              "examples": [
+                {
+                  "english_text": "Our plan to travel to Europe last summer fell through when we were unable to save up enough money.",
+                  "persian_meaning": "برنامه‌ی ما برای سفر به اروپا در تابستان گذشته وقتی نتوانستیم پول کافی پس‌انداز کنیم، به نتیجه نرسید."
+                },
+                {
+                  "english_text": "Felix made plans to have a party for everyone in his office, but they fell through at the last moment.",
+                  "persian_meaning": "فلیکس برنامه‌ریزی کرد که برای همه‌ی همکارانش در دفتر یک مهمانی بگیرد، اما برنامه‌هایش در آخرین لحظه به هم خورد."
+                }
+              ]
             },
             {
               "english_phrase": "to give in",
@@ -3029,7 +3049,21 @@
               "english_definition": "to distribute; to become exhausted or depleted (also: to run out)",
               "persian_definition_meaning": "توزیع کردن؛ خسته یا تهی شدن (همچنین: to run out)",
               "english_explanation": "The first definition has the same meaning as the second definition of to pass out in Lesson 19.",
-              "persian_explanation_meaning": "تعریف اول همان معنی تعریف دوم 'to pass out' در درس ۱۹ را دارد."
+              "persian_explanation_meaning": "تعریف اول همان معنی تعریف دوم 'to pass out' در درس ۱۹ را دارد.",
+              "examples": [
+                {
+                  "english_text": "An usher stood at the door of the theater giving out programs.",
+                  "persian_meaning": "یک راهنما دم در تئاتر ایستاده بود و برنامه‌ها را پخش می‌کرد."
+                },
+                {
+                  "english_text": "I couldn't finish the ten-mile race because my energy gave out.",
+                  "persian_meaning": "نتوانستم مسابقه‌ی ده مایلی را تمام کنم چون انرژی‌ام ته کشید."
+                },
+                {
+                  "english_text": "Jeff plans to stay in Las Vegas and gamble until his money runs out.",
+                  "persian_meaning": "جف قصد دارد در لاس‌وگاس بماند و قمار کند تا وقتی که پولش تمام شود."
+                }
+              ]
             },
             {
               "english_phrase": "to have it in for",
@@ -3073,7 +3107,17 @@
               "english_definition": "to delay, or to be delayed, in occurring (S)",
               "persian_definition_meaning": "به تأخیر انداختن، یا به تأخیر افتادن، در وقوع (قابل تفکیک)",
               "english_explanation": "This idiom has the same meaning as to put off in Lesson 5 when a noun or pronoun is used as an object, as in the second example.",
-              "persian_explanation_meaning": "این اصطلاح همان معنی 'to put off' در درس ۵ را دارد، زمانی که یک اسم یا ضمیر به عنوان مفعول استفاده می‌شود، مانند مثال دوم."
+              "persian_explanation_meaning": "این اصطلاح همان معنی 'to put off' در درس ۵ را دارد، زمانی که یک اسم یا ضمیر به عنوان مفعول استفاده می‌شود، مانند مثال دوم.",
+              "examples": [
+                {
+                  "english_text": "If the rain holds off for a few more days, they can finish planting the rest of the crop.",
+                  "persian_meaning": "اگر باران چند روز دیگر به تأخیر بیفتد، آن‌ها می‌توانند کاشت بقیه‌ی محصول را تمام کنند."
+                },
+                {
+                  "english_text": "The judge agreed to hold off making a decision until new evidence could be introduced into court.",
+                  "persian_meaning": "قاضی موافقت کرد که تصمیم‌گیری را تا زمانی که شواهد جدید به دادگاه ارائه شود، به تعویق بیندازد."
+                }
+              ]
             },
             {
               "english_phrase": "to hold out",
@@ -3081,7 +3125,21 @@
               "english_definition": "to endure, to be sufficient; to survive by resisting; to persist in one's efforts",
               "persian_definition_meaning": "تحمل کردن، کافی بودن؛ با مقاومت زنده ماندن؛ در تلاش‌های خود پافشاری کردن",
               "english_explanation": "The first definition for to hold out has the opposite meaning of the second definition for to give out (seventh idiom, this lesson).",
-              "persian_explanation_meaning": "تعریف اول برای 'to hold out' معنی متضاد تعریف دوم برای 'to give out' (اصطلاح هفتم، همین درس) را دارد."
+              "persian_explanation_meaning": "تعریف اول برای 'to hold out' معنی متضاد تعریف دوم برای 'to give out' (اصطلاح هفتم، همین درس) را دارد.",
+              "examples": [
+                {
+                  "english_text": "If our supply of food and water holds out, we plan to camp here for another week. However, whenever it gives out, we'll have to leave.",
+                  "persian_meaning": "اگر ذخیره‌ی آب و غذایمان کفاف بدهد، قصد داریم یک هفته‌ی دیگر اینجا اردو بزنیم. اما هر وقت تمام شود، مجبوریم برویم."
+                },
+                {
+                  "english_text": "That nation's troops cannot hold out much longer against the superior forces of the enemy.",
+                  "persian_meaning": "نیروهای آن کشور نمی‌توانند مدت زیادی در برابر نیروهای برتر دشمن مقاومت کنند."
+                },
+                {
+                  "english_text": "The valuable football player held out for more money before signing a new contract with his team.",
+                  "persian_meaning": "آن بازیکن ارزشمند فوتبال پیش از امضای قرارداد جدید با تیمش، برای گرفتن پول بیشتر پافشاری کرد."
+                }
+              ]
             },
             {
               "english_phrase": "to hold over",
